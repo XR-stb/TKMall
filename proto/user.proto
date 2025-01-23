@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package user;
+
+message User {
+    string uid = 1;
+    string name = 2;
+    string email = 3;
+    string password = 4;
+    string phone = 5;
+    string address = 6;
+    string avatar = 7;
+    string created_at = 8;
+    string updated_at = 9;
+    string deleted_at = 10;
+}
