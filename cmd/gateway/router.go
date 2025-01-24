@@ -35,5 +35,17 @@ func router(etcdClient *clientv3.Client) http.Handler {
 		})
 	})
 
+	e.GET("/register", func(c *gin.Context) {
+		handleGRPCRequest(c, etcdClient, "user-service", func(userClient user.UserServiceClient, ctx context.Context) (interface{}, error) {
+			email := c.Query("email")
+			password := c.Query("password")
+			req := &user.RegisterReq{
+				Email:    email,
+				Password: password,
+			}
+			return userClient.Register(ctx, req)
+		})
+	})
+
 	return e
 }

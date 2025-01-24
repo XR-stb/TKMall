@@ -1,14 +1,16 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 	"time"
 
+	"TKMall/build/proto_gen/auth"
 	user "TKMall/build/proto_gen/user"
+
+	service "TKMall/cmd/user/service"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
@@ -17,40 +19,6 @@ import (
 var (
 	port = flag.Int("port", 50051, "The server port")
 )
-
-type server struct {
-	user.UnimplementedUserServiceServer
-}
-
-func (s *server) Login(_ context.Context, req *user.LoginReq) (*user.LoginResp, error) {
-	log.Printf("Received: %v, %v", req.GetEmail(), req.GetPassword())
-	return &user.LoginResp{UserId: 114514}, nil
-}
-
-func registerService(client *clientv3.Client, serviceName, serviceAddr string, ttl int64) error {
-	leaseResp, err := client.Grant(context.Background(), ttl)
-	if err != nil {
-		return err
-	}
-
-	_, err = client.Put(context.Background(), serviceName, serviceAddr, clientv3.WithLease(leaseResp.ID))
-	if err != nil {
-		return err
-	}
-
-	ch, err := client.KeepAlive(context.Background(), leaseResp.ID)
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		for {
-			<-ch
-		}
-	}()
-
-	return nil
-}
 
 func main() {
 	flag.Parse()
@@ -64,6 +32,15 @@ func main() {
 	}
 	defer client.Close()
 
+	// 连接认证中心
+	conn, err := grpc.Dial("localhost:50052", grpc.WithInsecure())
+	if err != nil {
+		log.Fatalf("failed to connect to auth service: %v", err)
+	}
+	defer conn.Close()
+
+	authClient := auth.NewAuthServiceClient(conn)
+
 	err = registerService(client, "user-service", "localhost:50051", 10)
 	if err != nil {
 		log.Fatal(err)
@@ -74,7 +51,10 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	user.RegisterUserServiceServer(s, &server{})
+	user.RegisterUserServiceServer(s, &service.UserServiceServer{
+		Users:      make(map[string]*service.User),
+		AuthClient: authClient,
+	})
 	log.Printf("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
