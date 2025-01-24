@@ -13,3 +13,12 @@ chmod +x make.py
 
 ./make.py run gateway
 ```
+
+# Doc
+https://bytedance.larkoffice.com/docx/VMgWdZBFsoSJyFxD5ByclZghn3g
+
+# Backend official demo
+https://github.com/cloudwego/biz-demo
+
+# Frontend official demo
+https://github.com/cloudwego/biz-demo/blob/main/gomall/app/frontend
