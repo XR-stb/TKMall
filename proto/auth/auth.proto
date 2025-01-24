@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package auth;
 
-option go_package = "/auth";
+option go_package = "TKMall/build/proto_gen/auth";
 
 service AuthService {
   rpc DeliverTokenByRPC(DeliverTokenReq) returns (DeliveryResp) {}

@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package checkout;
 
-import "payment.proto";
+import "payment/payment.proto";
 
-option go_package = "/checkout";
+option go_package = "TKMall/build/proto_gen/checkout";
 
 service CheckoutService {
   rpc Checkout(CheckoutReq) returns (CheckoutResp) {}

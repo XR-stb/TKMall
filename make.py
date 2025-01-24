@@ -76,6 +76,10 @@ class Make:
                     util.exec_cmd_with_color("./build/golang/%s" % target)
                     return
                 raise Exception("unknown targets %s", target)
+    
+    def _install_(self):
+        self._build_()
+        self._run_()
 
     def _genproto_(self):
         util.exec_cmd_with_color("bash ./scripts/shell/gen_proto.sh")
@@ -114,8 +118,18 @@ def parse_args():
         choices=["all"] + get_golang_servers(),
     )
 
+    install_parser = subparsers.add_parser("install", help="build && run a target")
+    install_parser.add_argument(
+        "targets",
+        help="the server name, default is all",
+        default="all",
+        metavar="gateway",
+        type=str,
+        nargs="*",
+        choices=["all"] + get_golang_servers(),
+    )
+
     proto_parser = subparsers.add_parser("genproto", help="gen proto")
-    # proto_parser.add_argument("--with_golang", action="store_true", help="choose build system, default is bazel")
 
     # https://kislyuk.github.io/argcomplete/
     # TODO: 命令行自动补全命令, 这个autocomplete包不好下，回头弄

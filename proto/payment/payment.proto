@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package payment;
 
-option go_package = "/payment";
+option go_package = "TKMall/build/proto_gen/payment";
 
 service PaymentService {
   rpc Charge(ChargeReq) returns (ChargeResp) {}
