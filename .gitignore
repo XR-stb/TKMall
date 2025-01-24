@@ -366,4 +366,7 @@ tools/protobuf/bin
 tools/protobuf/include
 tools/protobuf/readme.txt
 
-kitex_gen/
+build/
+
+__pycache__
+*.pyc
