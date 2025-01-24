@@ -1,0 +1,31 @@
+{
+    "folders": [
+        {
+            "path": ".",
+            "name": "TikTokMall"
+        },
+    ],
+    "settings": {
+        "go.lintTool": "golangci-lint",
+        "go.lintFlags": [],
+        "go.lintOnSave": "package",
+        "go.formatTool": "goimports",
+        "[python]": {
+            "editor.tabSize": 4,
+            "editor.formatOnSave": true,
+            "editor.defaultFormatter": "ms-python.black-formatter"
+        },
+        "protoc": {
+            "path": "${workspaceRoot}/tools/protobuf/bin/protoc",
+            "options": [
+                "--proto_path=${workspaceRoot}/proto"
+            ]
+        },
+        "editor.formatOnSave": true,
+        "[shellscript]": {
+            "editor.defaultFormatter": "foxundermoon.shell-format"
+        },
+        "files.autoSave": "afterDelay",
+        "files.autoSaveDelay": 100,
+    },
+}
