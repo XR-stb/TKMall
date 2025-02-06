@@ -1,0 +1,14 @@
+server:
+  name: "user"
+  port: 50051
+
+etcd:
+  endpoints:
+    - "localhost:2379"
+  dial_timeout: 5
+
+auth_service:
+  address: "localhost:50052"
+
+mysql:
+  dsn: "tkmalluser:yourpassword@tcp(localhost:3306)/tkmall?charset=utf8mb4&parseTime=True&loc=Local"

@@ -8,15 +8,15 @@ import (
 	"time"
 
 	"TKMall/build/proto_gen/auth"
+	"TKMall/common/config"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
-const (
-	secretKey = "TikiTokMall"
-)
+var secretKey string
 
 type AuthServiceServer struct {
 	auth.UnimplementedAuthServiceServer
@@ -61,11 +61,16 @@ func validateJWT(tokenString string) (*jwt.StandardClaims, error) {
 }
 
 func main() {
+	config.InitConfig("auth")
+
+	port := viper.GetInt("server.port")
+	secretKey = viper.GetString("auth.secret_key")
+
 	server := grpc.NewServer()
 	auth.RegisterAuthServiceServer(server, &AuthServiceServer{})
 	reflection.Register(server)
 
-	lis, err := net.Listen("tcp", ":50052")
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
