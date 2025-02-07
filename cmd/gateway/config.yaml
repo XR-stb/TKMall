@@ -1,0 +1,10 @@
+server:
+  name: "gateway"
+  port: 8080
+
+etcd:
+  endpoints:
+    - "localhost:2379"
+
+services:
+  user_service: "localhost:50051"

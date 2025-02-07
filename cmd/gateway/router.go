@@ -9,7 +9,11 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func router(etcdClient *clientv3.Client) http.Handler {
+func router(etcdClient *clientv3.Client, config *Config) http.Handler {
+	// 创建服务上下文
+	serviceCtx := NewServiceContext(config)
+	_ = serviceCtx
+
 	e := gin.New()
 	e.Use(gin.Recovery())
 
@@ -23,7 +27,7 @@ func router(etcdClient *clientv3.Client) http.Handler {
 		)
 	})
 
-	e.GET("/login", func(c *gin.Context) {
+	e.POST("/login", func(c *gin.Context) {
 		handleGRPCRequest(c, etcdClient, "user-service", func(userClient user.UserServiceClient, ctx context.Context) (interface{}, error) {
 			email := c.Query("email")
 			password := c.Query("password")
@@ -35,7 +39,7 @@ func router(etcdClient *clientv3.Client) http.Handler {
 		})
 	})
 
-	e.GET("/register", func(c *gin.Context) {
+	e.POST("/register", func(c *gin.Context) {
 		handleGRPCRequest(c, etcdClient, "user-service", func(userClient user.UserServiceClient, ctx context.Context) (interface{}, error) {
 			email := c.Query("email")
 			password := c.Query("password")
