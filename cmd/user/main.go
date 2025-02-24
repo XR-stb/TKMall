@@ -19,6 +19,9 @@ import (
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
+
+	userEvents "TKMall/cmd/user/events"
+	"TKMall/common/events"
 )
 
 func main() {
@@ -61,15 +64,27 @@ func main() {
 	}
 	serviceProxy := proxy.NewGrpcProxy(serviceEndpoints, "localhost:6379")
 
+	// 初始化事件总线
+	eventBus, err := events.NewKafkaEventBus([]string{"localhost:9092"})
+	if err != nil {
+		log.Fatalf("Failed to initialize event bus: %v", err)
+	}
+
+	// 初始化事件处理器
+	if err := userEvents.InitEventHandlers(eventBus); err != nil {
+		log.Fatalf("Failed to initialize event handlers: %v", err)
+	}
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
 	user.RegisterUserServiceServer(s, &service.UserServiceServer{
-		DB:    db,
-		Node:  node,
-		Proxy: serviceProxy,
+		DB:       db,
+		Node:     node,
+		Proxy:    serviceProxy,
+		EventBus: eventBus,
 	})
 	log.Infof("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {

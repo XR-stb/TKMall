@@ -67,6 +67,8 @@ class Make:
     def _run_(self):
         targets = self.args.targets
         if targets == "all" or targets == ["all"]:
+            self._kill_()
+
             # 优先运行gateway
             if "gateway" in self.golang_targets:
                 logger.Info("Starting gateway first in background...")
@@ -93,6 +95,9 @@ class Make:
 
     def _genproto_(self):
         util.exec_cmd_with_color("bash ./scripts/shell/gen_proto.sh")
+
+    def _kill_(self):
+        util.exec_cmd_with_color("bash ./scripts/shell/kill_servers.sh")
 
 
 def parse_args():
@@ -140,6 +145,8 @@ def parse_args():
     )
 
     proto_parser = subparsers.add_parser("genproto", help="gen proto")
+
+    kill_parser = subparsers.add_parser("kill", help="kill all running servers")
 
     # https://kislyuk.github.io/argcomplete/
     # TODO: 命令行自动补全命令, 这个autocomplete包不好下，回头弄

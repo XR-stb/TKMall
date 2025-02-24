@@ -12,9 +12,10 @@ import (
 type EventType string
 
 const (
-	OrderCreated EventType = "order.created"
-	OrderPaid    EventType = "order.paid"
-	StockUpdated EventType = "stock.updated"
+	OrderCreated   EventType = "order.created"
+	OrderPaid      EventType = "order.paid"
+	StockUpdated   EventType = "stock.updated"
+	UserRegistered EventType = "user.registered"
 )
 
 type Event struct {
@@ -97,4 +98,11 @@ func (eb *KafkaEventBus) Subscribe(eventType EventType, handler func(context.Con
 			}
 		}
 	}()
+}
+
+// 用户注册事件的payload结构
+type UserRegisteredPayload struct {
+	UserID    int64     `json:"user_id"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
 }

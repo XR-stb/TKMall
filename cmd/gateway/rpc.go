@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"strings"
 
+	"TKMall/common/log"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,6 +24,17 @@ type RPCWrapper struct {
 
 func (w *RPCWrapper) Call(serviceName string, fn interface{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 打印请求方法和URL
+		log.Infof("Received request: %s %s", c.Request.Method, c.Request.URL)
+
+		// 打印请求体
+		bodyBytes, err := c.GetRawData()
+		if err != nil {
+			log.Errorf("Failed to read request body: %v", err)
+		} else {
+			log.Infof("Request body: %s", string(bodyBytes))
+		}
+
 		// 通过反射动态调用方法
 		fnValue := reflect.ValueOf(fn)
 		if fnValue.Kind() != reflect.Func {
@@ -60,13 +73,19 @@ func (w *RPCWrapper) Call(serviceName string, fn interface{}) gin.HandlerFunc {
 		// 构造请求参数
 		reqType := method.Type().In(1) // 方法的第二个参数是请求参数
 		req := reflect.New(reqType.Elem()).Interface()
-		if err := c.ShouldBind(req); err != nil {
+
+		// 解析查询参数到 gRPC 请求对象
+		if err := c.ShouldBindQuery(req); err != nil {
+			log.Errorf("Failed to bind query: %v", err)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":  http.StatusBadRequest,
 				"error": err.Error(),
 			})
 			return
 		}
+
+		// 打印解析后的请求参数
+		log.Infof("Parsed request: %+v", req)
 
 		// 调用方法
 		results := method.Call([]reflect.Value{

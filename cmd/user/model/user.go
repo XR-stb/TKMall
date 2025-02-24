@@ -22,6 +22,14 @@ type User struct {
 	UpdatedAt   time.Time
 }
 
+type UserSettings struct {
+	UserID              int64     `gorm:"primaryKey"`
+	Theme               string
+	NotificationEnabled bool
+	Language            string
+	CreatedAt           time.Time
+}
+
 // InitGORM 初始化 GORM 数据库连接
 func InitGORM() (*gorm.DB, error) {
 	dsn := viper.GetString("mysql.dsn")

@@ -12,8 +12,25 @@ import (
 	"gorm.io/gorm"
 )
 
+func loginParamCheck(input string) bool {
+	if input == "" {
+		return false
+	}
+
+	if len(input) < 6 {
+		return false
+	}
+
+	// TODO: more check
+	return true
+}
+
 // Login service
 func (s *UserServiceServer) Login(ctx context.Context, req *user.LoginReq) (*user.LoginResp, error) {
+	if !loginParamCheck(req.Email) || !loginParamCheck(req.Password) {
+		log.Debugf("login req email: %s, password: %s invalid", req.Email, req.Password)
+		return nil, fmt.Errorf("login param error")
+	}
 	var userInfo model.User
 
 	if err := s.DB.Where("email = ?", req.Email).First(&userInfo).Error; err != nil {
@@ -39,7 +56,5 @@ func (s *UserServiceServer) Login(ctx context.Context, req *user.LoginReq) (*use
 	authResp := tokenResp.(*auth.DeliveryResp)
 	log.Infof("Generated token for user %d: %s", userInfo.ID, authResp.Token)
 
-	// may need to return token
-	// return &user.LoginResp{UserId: int32(userInfo.ID), Token: authResp.Token}, nil
-	return &user.LoginResp{UserId: int32(userInfo.ID)}, nil
+	return &user.LoginResp{UserId: userInfo.ID, Token: authResp.Token}, nil
 }

@@ -5,6 +5,10 @@ import (
 	"TKMall/cmd/user/model"
 	"context"
 	"fmt"
+	"time"
+
+	"TKMall/common/events"
+	"TKMall/common/log"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -56,5 +60,23 @@ func (s *UserServiceServer) Register(ctx context.Context, req *user.RegisterReq)
 		return nil, fmt.Errorf("failed to create user: %v", err)
 	}
 
-	return &user.RegisterResp{UserId: int32(userID)}, nil
+	// 发布用户注册事件
+	event := events.Event{
+		Type: events.UserRegistered,
+		Payload: events.UserRegisteredPayload{
+			UserID:    userID,
+			Email:     req.Email,
+			CreatedAt: time.Now(),
+		},
+		Timestamp: time.Now(),
+	}
+
+	// 异步发布事件
+	go func() {
+		if err := s.EventBus.Publish(context.Background(), event); err != nil {
+			log.Warnf("Failed to publish user registration event: %v", err)
+		}
+	}()
+
+	return &user.RegisterResp{UserId: userID}, nil
 }
