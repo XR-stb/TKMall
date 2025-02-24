@@ -65,6 +65,10 @@ class Make:
             self.build_targets(targets)
 
     def _run_(self):
+        # 先启动 etcd, 避免服务注册时 阻塞住
+        logger.Info("Starting etcd...")
+        util.exec_cmd_with_color("bash ./tools/etcd/start.sh")
+
         targets = self.args.targets
         if targets == "all" or targets == ["all"]:
             self._kill_()
@@ -83,6 +87,10 @@ class Make:
             for service in self.golang_targets:
                 util.exec_cmd_with_color(f"./build/bin/{service}")
         else:
+            # 单个服务运行时也需要确保 etcd 启动
+            logger.Info("Starting etcd...")
+            util.exec_cmd_with_color("bash ./tools/etcd/start.sh")
+            
             for target in targets:
                 if target in self.golang_targets:
                     util.exec_cmd_with_color("./build/bin/%s" % target)
