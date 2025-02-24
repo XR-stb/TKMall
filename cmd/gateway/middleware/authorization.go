@@ -1,0 +1,174 @@
+package middleware
+
+import (
+	"fmt"
+	"net/http"
+
+	"TKMall/common/log" // 使用项目的日志包
+
+	"github.com/casbin/casbin/v2"
+	"github.com/gin-gonic/gin"
+)
+
+func AuthorizationMiddleware(e *casbin.Enforcer) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		log.Infof("正在处理请求: %s %s", c.Request.Method, c.Request.URL.Path)
+
+		// 只跳过注册接口的权限验证
+		if c.Request.URL.Path == "/register" {
+			log.Infof("跳过注册接口的权限验证")
+			c.Next()
+			return
+		}
+
+		// 对于登录接口，使用 email 作为主体进行验证
+		if c.Request.URL.Path == "/login" {
+			email := c.Query("Email") // 注意大写的 Email
+			log.Infof("登录接口验证，Email: %s", email)
+
+			if email != "" {
+				// 检查用户是否在黑名单中
+				isBlocked, err := e.HasGroupingPolicy(email, "blocked_user")
+				if err != nil {
+					log.Errorf("黑名单检查失败: %v", err)
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Error checking permissions"})
+					c.Abort()
+					return
+				}
+
+				if isBlocked {
+					log.Warnf("用户 %s 在黑名单中，登录被拒绝", email)
+					c.JSON(http.StatusForbidden, gin.H{"error": "Account is blocked"})
+					c.Abort()
+					return
+				}
+			}
+			c.Next()
+			return
+		}
+
+		// 其他接口的权限验证
+		userID, exists := c.Get("userID")
+		log.Infof("其他接口验证，userID=%v, exists=%v", userID, exists)
+		if !exists {
+			c.JSON(http.StatusForbidden, gin.H{"error": "User not authenticated"})
+			c.Abort()
+			return
+		}
+
+		// 获取请求路径和方法
+		obj := c.Request.URL.Path
+		act := c.Request.Method
+
+		// 检查权限
+		ok, err := e.Enforce(fmt.Sprint(userID), obj, act)
+		if err != nil {
+			log.Errorf("权限检查失败: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error checking permissions"})
+			c.Abort()
+			return
+		}
+
+		if !ok {
+			log.Warnf("用户 %v 访问 %s %s 被拒绝", userID, act, obj)
+			c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
+			c.Abort()
+			return
+		}
+
+		log.Infof("用户 %v 访问 %s %s 已授权", userID, act, obj)
+		c.Next()
+	}
+}
+
+// 更新用户角色
+func UpdateUserRole(e *casbin.Enforcer, userID string, role string) error {
+	// 移除用户的所有现有角色
+	e.RemoveFilteredGroupingPolicy(0, userID)
+
+	// 添加新角色
+	_, err := e.AddGroupingPolicy(userID, role)
+	if err != nil {
+		return err
+	}
+
+	// 加载更新后的策略
+	return e.LoadPolicy()
+}
+
+// 禁用用户
+func DisableUser(e *casbin.Enforcer, userID string) error {
+	// 移除用户的所有角色
+	_, err := e.RemoveFilteredGroupingPolicy(0, userID)
+	if err != nil {
+		return err
+	}
+
+	// 加载更新后的策略
+	return e.LoadPolicy()
+}
+
+// 将用户加入黑名单
+func BlockUser(e *casbin.Enforcer, email string) error {
+	// 添加黑名单策略
+	_, err := e.AddGroupingPolicy(email, "blocked_user")
+	if err != nil {
+		return err
+	}
+
+	// 加载更新后的策略
+	return e.LoadPolicy()
+}
+
+// 将用户从黑名单移除
+func UnblockUser(e *casbin.Enforcer, email string) error {
+	// 移除黑名单策略
+	_, err := e.RemoveFilteredGroupingPolicy(0, email, "blocked_user")
+	if err != nil {
+		return err
+	}
+
+	// 加载更新后的策略
+	return e.LoadPolicy()
+}
+
+// 批量添加用户到黑名单
+func BlockUsers(e *casbin.Enforcer, emails []string) error {
+	for _, email := range emails {
+		_, err := e.AddGroupingPolicy(email, "blocked_user")
+		if err != nil {
+			return fmt.Errorf("failed to block user %s: %v", email, err)
+		}
+	}
+
+	// 加载更新后的策略
+	return e.LoadPolicy()
+}
+
+// 批量从黑名单移除用户
+func UnblockUsers(e *casbin.Enforcer, emails []string) error {
+	for _, email := range emails {
+		_, err := e.RemoveFilteredGroupingPolicy(0, email, "blocked_user")
+		if err != nil {
+			return fmt.Errorf("failed to unblock user %s: %v", email, err)
+		}
+	}
+
+	// 加载更新后的策略
+	return e.LoadPolicy()
+}
+
+// 获取所有黑名单用户
+func GetBlockedUsers(e *casbin.Enforcer) []string {
+	policies, _ := e.GetFilteredGroupingPolicy(1, "blocked_user")
+	users := make([]string, len(policies))
+	for i, policy := range policies {
+		users[i] = policy[0]
+	}
+	return users
+}
+
+// 重新加载策略
+func ReloadPolicy(e *casbin.Enforcer) error {
+	return e.LoadPolicy()
+}

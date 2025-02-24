@@ -9,7 +9,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-var SecretKey string
+
 
 func generateJWT(userId int32) (string, error) {
 	claims := &jwt.StandardClaims{

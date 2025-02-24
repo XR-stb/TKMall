@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/casbin/casbin/v2"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/sync/errgroup"
 )
@@ -49,12 +50,21 @@ func main() {
 		log.Fatalf("加载配置失败: %v", err)
 	}
 
+	// 初始化 Casbin
+	e, err := casbin.NewEnforcer("config/casbin/model.conf", "config/casbin/policy.csv")
+	if err != nil {
+		log.Fatalf("Failed to initialize Casbin: %v", err)
+	}
+
 	serviceCtx := NewServiceContext(config)
 	rpcWrapper := NewRPCWrapper(serviceCtx)
 
+	// 使用现有的 router 函数
+	r := router(rpcWrapper, e)
+
 	server01 := &http.Server{
 		Addr:         fmt.Sprintf(":%d", config.Server.Port),
-		Handler:      router(rpcWrapper),
+		Handler:      r,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

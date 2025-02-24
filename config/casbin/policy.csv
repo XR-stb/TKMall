@@ -1,0 +1,21 @@
+# 角色定义
+p, admin, /*, *, allow
+p, user, /login, POST, allow
+p, user, /register, POST, allow
+p, user, /test_auth, GET, allow
+
+# 默认允许所有用户访问登录接口
+p, *, /login, POST, allow
+
+# 用户角色映射
+g, 1, admin
+g, 1888139167179739136, user
+
+# 黑名单规则（禁止访问登录接口）
+p, blocked_user, /login, POST, deny
+
+# 黑名单用户列表
+g, 1893928248480370688, blocked_user
+g, xiaoran1@qq.com, blocked_user
+g, xiaoran2@qq.com, blocked_user
+g, xiaoran3@qq.com, blocked_user 
