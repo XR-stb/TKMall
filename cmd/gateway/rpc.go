@@ -1,69 +1,89 @@
 package main
 
 import (
-	user "TKMall/build/proto_gen/user"
-	"context"
+	"fmt"
 	"net/http"
+	"reflect"
+	"runtime"
+	"strings"
 
 	"github.com/gin-gonic/gin"
-	clientv3 "go.etcd.io/etcd/client/v3"
-	"google.golang.org/grpc"
 )
 
-func handleGRPCRequest(c *gin.Context, etcdClient *clientv3.Client, serviceName string, grpcFunc func(user.UserServiceClient, context.Context) (interface{}, error)) {
-	// 发现 user 服务
-	serviceAddr, err := discoverService(etcdClient, serviceName)
-	if err != nil || serviceAddr == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":  http.StatusInternalServerError,
-			"error": "user service not found",
-		})
-		return
+func NewRPCWrapper(serviceCtx *ServiceContext) *RPCWrapper {
+	return &RPCWrapper{
+		serviceCtx: serviceCtx,
 	}
-
-	// 获取 gRPC 客户端
-	userClient, conn, err := getUserClient(serviceAddr)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":  http.StatusInternalServerError,
-			"error": err.Error(),
-		})
-		return
-	}
-	defer conn.Close()
-
-	// 调用 gRPC 服务
-	resp, err := grpcFunc(userClient, context.Background())
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":  http.StatusInternalServerError,
-			"error": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, resp)
 }
 
-func discoverService(client *clientv3.Client, serviceName string) (string, error) {
-	// 若Etcd服务器未启动，此处会阻塞
-	resp, err := client.Get(context.Background(), serviceName)
-	if err != nil {
-		return "", err
-	}
-
-	if len(resp.Kvs) == 0 {
-		return "", nil
-	}
-
-	return string(resp.Kvs[0].Value), nil
+type RPCWrapper struct {
+	serviceCtx *ServiceContext
 }
 
-func getUserClient(serviceAddr string) (user.UserServiceClient, *grpc.ClientConn, error) {
-	conn, err := grpc.Dial(serviceAddr, grpc.WithInsecure())
-	if err != nil {
-		return nil, nil, err
+func (w *RPCWrapper) Call(serviceName string, fn interface{}) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 通过反射动态调用方法
+		fnValue := reflect.ValueOf(fn)
+		if fnValue.Kind() != reflect.Func {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":  http.StatusInternalServerError,
+				"error": "Invalid handler function",
+			})
+			return
+		}
+
+		// 获取客户端实例
+		var client interface{}
+		if err := w.serviceCtx.GetClient(serviceName, &client); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":  http.StatusInternalServerError,
+				"error": fmt.Sprintf("%s service unavailable", serviceName),
+			})
+			return
+		}
+
+		// 获取方法
+		methodName := runtime.FuncForPC(fnValue.Pointer()).Name()
+		// 从最后一个点号后面取方法名
+		if lastDot := strings.LastIndex(methodName, "."); lastDot >= 0 {
+			methodName = methodName[lastDot+1:]
+		}
+		method := reflect.ValueOf(client).MethodByName(methodName)
+		if !method.IsValid() {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":  http.StatusInternalServerError,
+				"error": fmt.Sprintf("Method %s not found", methodName),
+			})
+			return
+		}
+
+		// 构造请求参数
+		reqType := method.Type().In(1) // 方法的第二个参数是请求参数
+		req := reflect.New(reqType.Elem()).Interface()
+		if err := c.ShouldBind(req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":  http.StatusBadRequest,
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// 调用方法
+		results := method.Call([]reflect.Value{
+			reflect.ValueOf(c.Request.Context()),
+			reflect.ValueOf(req),
+		})
+
+		// 处理结果
+		if !results[1].IsNil() {
+			err := results[1].Interface().(error)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":  http.StatusInternalServerError,
+				"error": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, results[0].Interface())
 	}
-	client := user.NewUserServiceClient(conn)
-	return client, conn, nil
 }

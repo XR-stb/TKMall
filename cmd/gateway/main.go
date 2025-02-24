@@ -46,27 +46,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("加载配置失败: %v", err)
 	}
-	log.Printf("配置: %+v", config)
-	etcdClient, err := clientv3.New(clientv3.Config{
-		Endpoints:   config.Etcd.Endpoints,
-		DialTimeout: 5 * time.Second,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer etcdClient.Close()
 
-	serviceName := config.Server.Name
-	serviceAddr := fmt.Sprintf("localhost:%d", config.Server.Port)
-	log.Printf("服务 %s 将注册到 ETCD，地址为 %s", serviceName, serviceAddr)
-	if err := registerService(etcdClient, serviceName, serviceAddr, 10); err != nil {
-		log.Fatalf("服务注册失败: %v", err)
-	}
-	log.Printf("服务 %s 已注册到 ETCD，地址为 %s", serviceName, serviceAddr)
+	serviceCtx := NewServiceContext(config)
+	rpcWrapper := NewRPCWrapper(serviceCtx)
 
 	server01 := &http.Server{
 		Addr:         fmt.Sprintf(":%d", config.Server.Port),
-		Handler:      router(etcdClient, config),
+		Handler:      router(rpcWrapper),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

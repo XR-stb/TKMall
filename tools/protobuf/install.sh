@@ -30,20 +30,24 @@ if ! command -v unzip &> /dev/null; then
     fi
 fi
 
+# 获取当前脚本所在目录
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
 # 下载并解压 protoc
 PROTOC_VERSION="29.3"
 PROTOC_ZIP="protoc-${PROTOC_VERSION}-linux-x86_64.zip"
 PROTOC_URL="https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/${PROTOC_ZIP}"
 
 wget $PROTOC_URL
-unzip $PROTOC_ZIP -d /data/workspace/TKMall/tools/protobuf
+mkdir -p $SCRIPT_DIR/bin
+unzip -o $PROTOC_ZIP -d $SCRIPT_DIR
 
-# 添加 protoc 到 PATH
-PROTOC_PATH="/data/workspace/TKMall/tools/protobuf/bin"
-if ! grep -q "$PROTOC_PATH" <<< "$PATH"; then
-    echo "export PATH=\$PATH:$PROTOC_PATH" >> ~/.bashrc
-    source ~/.bashrc
-fi
+# 根据需要添加 protoc 到 PATH
+# PROTOC_PATH="$SCRIPT_DIR/bin"
+# if ! grep -q "$PROTOC_PATH" <<< "$PATH"; then
+#     echo "export PATH=\$PATH:$PROTOC_PATH" >> ~/.bashrc
+#     source ~/.bashrc
+# fi
 
 # 验证 protoc 是否可用
 protoc --version

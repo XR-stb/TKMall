@@ -18,6 +18,7 @@ type Config struct {
 
 	Services struct {
 		UserService string `mapstructure:"user_service"`
+		AuthService string `mapstructure:"auth_service"`
 	} `mapstructure:"services"`
 }
 

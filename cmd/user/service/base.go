@@ -16,7 +16,7 @@ type User struct {
 
 type UserServiceServer struct {
 	user.UnimplementedUserServiceServer
-	Users      map[string]*User
+	// Users      map[string]*User
 	AuthClient auth.AuthServiceClient
 	DB         *gorm.DB
 	Node       *snowflake.Node

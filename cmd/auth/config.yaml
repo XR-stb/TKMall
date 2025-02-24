@@ -1,5 +1,11 @@
 server:
   name: "auth"
   port: 50052
+  
 auth:
   secret_key: "TikiTokMall"
+
+etcd:
+  endpoints:
+    - "localhost:2379"
+  dial_timeout: 5

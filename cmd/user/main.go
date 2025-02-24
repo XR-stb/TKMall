@@ -9,6 +9,7 @@ import (
 	"TKMall/build/proto_gen/auth"
 	user "TKMall/build/proto_gen/user"
 	"TKMall/common/config"
+	"TKMall/common/etcd"
 
 	"TKMall/cmd/user/model"
 	service "TKMall/cmd/user/service"
@@ -22,6 +23,7 @@ import (
 func main() {
 	config.InitConfig("user")
 
+	serviceName := viper.GetString("server.name")
 	port := viper.GetInt("server.port")
 	etcdEndpoints := viper.GetStringSlice("etcd.endpoints")
 	etcdDialTimeout := viper.GetDuration("etcd.dial_timeout") * time.Second
@@ -45,7 +47,7 @@ func main() {
 
 	authClient := auth.NewAuthServiceClient(conn)
 
-	err = registerService(client, "user-service", fmt.Sprintf("localhost:%d", port), 10)
+	err = etcd.RegisterService(client, serviceName, fmt.Sprintf("localhost:%d", port), 10)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -67,7 +69,7 @@ func main() {
 	}
 	s := grpc.NewServer()
 	user.RegisterUserServiceServer(s, &service.UserServiceServer{
-		Users:      make(map[string]*service.User),
+		// Users:      make(map[string]*service.User),
 		AuthClient: authClient,
 		DB:         db,
 		Node:       node,

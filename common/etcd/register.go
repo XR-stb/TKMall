@@ -1,4 +1,4 @@
-package main
+package etcd
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func registerService(client *clientv3.Client, serviceName, serviceAddr string, ttl int64) error {
+func RegisterService(client *clientv3.Client, serviceName, serviceAddr string, ttl int64) error {
 	leaseResp, err := client.Grant(context.Background(), ttl)
 	if err != nil {
 		return err

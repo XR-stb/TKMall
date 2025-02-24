@@ -7,7 +7,11 @@ option go_package = "TKMall/build/proto_gen/auth";
 service AuthService {
   rpc DeliverTokenByRPC(DeliverTokenReq) returns (DeliveryResp) {}
   rpc VerifyTokenByRPC(VerifyTokenReq) returns (VerifyResp) {}
+  rpc TestGateWayMsg(Empty) returns (TestGateWayMsgResp) {}
 }
+
+message Empty {}
+message TestGateWayMsgResp { string msg = 1; }
 
 message DeliverTokenReq { int32 user_id = 1; }
 

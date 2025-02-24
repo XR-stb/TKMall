@@ -1,73 +1,49 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net"
 	"time"
 
 	"TKMall/build/proto_gen/auth"
+	"TKMall/cmd/auth/service"
 	"TKMall/common/config"
+	"TKMall/common/etcd"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/spf13/viper"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
-var secretKey string
 
-type AuthServiceServer struct {
-	auth.UnimplementedAuthServiceServer
-}
-
-func (s *AuthServiceServer) DeliverTokenByRPC(ctx context.Context, req *auth.DeliverTokenReq) (*auth.DeliveryResp, error) {
-	token, err := generateJWT(req.UserId)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate token: %v", err)
-	}
-	return &auth.DeliveryResp{Token: token}, nil
-}
-
-func (s *AuthServiceServer) VerifyTokenByRPC(ctx context.Context, req *auth.VerifyTokenReq) (*auth.VerifyResp, error) {
-	_, err := validateJWT(req.Token)
-	if err != nil {
-		return &auth.VerifyResp{Res: false}, nil
-	}
-	return &auth.VerifyResp{Res: true}, nil
-}
-
-func generateJWT(userId int32) (string, error) {
-	claims := &jwt.StandardClaims{
-		Subject:   fmt.Sprintf("%d", userId),
-		ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(secretKey))
-}
-
-func validateJWT(tokenString string) (*jwt.StandardClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(secretKey), nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	if claims, ok := token.Claims.(*jwt.StandardClaims); ok && token.Valid {
-		return claims, nil
-	}
-	return nil, fmt.Errorf("invalid token")
-}
 
 func main() {
 	config.InitConfig("auth")
 
+	serviceName := viper.GetString("server.name")
 	port := viper.GetInt("server.port")
-	secretKey = viper.GetString("auth.secret_key")
+	service.SecretKey = viper.GetString("auth.secret_key")
+	etcdEndpoints := viper.GetStringSlice("etcd.endpoints")
+	etcdDialTimeout := viper.GetDuration("etcd.dial_timeout") * time.Second
+
+	client, err := clientv3.New(clientv3.Config{
+		Endpoints:   etcdEndpoints,
+		DialTimeout: etcdDialTimeout,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer client.Close()
+
+	err = etcd.RegisterService(client, serviceName, fmt.Sprintf("localhost:%d", port), 10)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	server := grpc.NewServer()
-	auth.RegisterAuthServiceServer(server, &AuthServiceServer{})
+	auth.RegisterAuthServiceServer(server, &service.AuthServiceServer{})
 	reflection.Register(server)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
