@@ -59,7 +59,7 @@ func main() {
 	serviceEndpoints := map[string]string{
 		"auth": viper.GetString("auth_service.address"),
 	}
-	serviceProxy := proxy.NewGrpcProxy(serviceEndpoints)
+	serviceProxy := proxy.NewGrpcProxy(serviceEndpoints, "localhost:6379")
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
