@@ -5,7 +5,7 @@ server:
 etcd:
   endpoints:
     - "localhost:2379"
-
+  dial_timeout: 5
 services:
   user_service: "localhost:50051"
   auth_service: "localhost:50052"

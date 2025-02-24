@@ -16,6 +16,6 @@ p, blocked_user, /login, POST, deny
 
 # 黑名单用户列表
 g, 1893928248480370688, blocked_user
-g, xiaoran1@qq.com, blocked_user
+#g, xiaoran1@qq.com, blocked_user
 g, xiaoran2@qq.com, blocked_user
 g, xiaoran3@qq.com, blocked_user 

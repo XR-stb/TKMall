@@ -13,7 +13,8 @@ type Config struct {
 	} `mapstructure:"server"`
 
 	Etcd struct {
-		Endpoints []string `mapstructure:"endpoints"`
+		Endpoints   []string `mapstructure:"endpoints"`
+		DialTimeout int      `mapstructure:"dial_timeout"`
 	} `mapstructure:"etcd"`
 
 	Services struct {

@@ -3,12 +3,35 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"TKMall/common/log" // 使用项目的日志包
 
 	"github.com/casbin/casbin/v2"
 	"github.com/gin-gonic/gin"
 )
+
+var enforcer *casbin.Enforcer
+
+// 初始化 Enforcer
+func InitEnforcer(e *casbin.Enforcer) {
+	enforcer = e
+	// 启动定期重新加载
+	go autoReload()
+}
+
+// 定期重新加载策略
+func autoReload() {
+	ticker := time.NewTicker(5 * time.Second) // 每5秒重新加载一次
+	for range ticker.C {
+		err := enforcer.LoadPolicy()
+		if err != nil {
+			log.Errorf("Failed to reload policy: %v", err)
+		} else {
+			log.Infof("Policy reloaded successfully")
+		}
+	}
+}
 
 func AuthorizationMiddleware(e *casbin.Enforcer) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -116,7 +139,7 @@ func BlockUser(e *casbin.Enforcer, email string) error {
 		return err
 	}
 
-	// 加载更新后的策略
+	// 直接调用 LoadPolicy 即可
 	return e.LoadPolicy()
 }
 

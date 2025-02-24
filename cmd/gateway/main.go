@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"TKMall/cmd/gateway/middleware"
+
 	"github.com/casbin/casbin/v2"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/sync/errgroup"
@@ -50,11 +52,32 @@ func main() {
 		log.Fatalf("加载配置失败: %v", err)
 	}
 
+	// 初始化 etcd 客户端
+	etcdClient, err := clientv3.New(clientv3.Config{
+		Endpoints:   config.Etcd.Endpoints,
+		DialTimeout: time.Duration(config.Etcd.DialTimeout) * time.Second,
+	})
+	if err != nil {
+		log.Fatalf("Failed to connect to etcd: %v", err)
+	}
+	defer etcdClient.Close()
+
 	// 初始化 Casbin
 	e, err := casbin.NewEnforcer("config/casbin/model.conf", "config/casbin/policy.csv")
 	if err != nil {
 		log.Fatalf("Failed to initialize Casbin: %v", err)
 	}
+
+	// 创建 Casbin 适配器
+	adapter := middleware.NewCasbinAdapter(etcdClient, e)
+
+	// 初始化时加载策略到 etcd（如果是第一次运行）
+	if err := adapter.SavePolicy(); err != nil {
+		log.Errorf("Failed to save initial policy to etcd: %v", err)
+	}
+
+	// 初始化 Enforcer
+	middleware.InitEnforcer(e)
 
 	serviceCtx := NewServiceContext(config)
 	rpcWrapper := NewRPCWrapper(serviceCtx)
