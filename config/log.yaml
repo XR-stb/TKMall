@@ -1,0 +1,7 @@
+log_dir: "./build/log"
+format: "json"
+max_size: 100
+max_backups: 7
+max_age: 30
+compress: true
+level: "debug"  # 可选值：debug, info, warn, error, fatal 

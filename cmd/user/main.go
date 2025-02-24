@@ -1,18 +1,19 @@
 package main
 
 import (
+	"TKMall/common/log"
 	"fmt"
-	"log"
 	"net"
 	"time"
 
-	"TKMall/build/proto_gen/auth"
 	user "TKMall/build/proto_gen/user"
 	"TKMall/common/config"
 	"TKMall/common/etcd"
 
 	"TKMall/cmd/user/model"
 	service "TKMall/cmd/user/service"
+
+	"TKMall/common/proxy"
 
 	"github.com/bwmarrin/snowflake"
 	"github.com/spf13/viper"
@@ -21,13 +22,13 @@ import (
 )
 
 func main() {
+	log.Init("config/log.yaml", "user")
 	config.InitConfig("user")
 
 	serviceName := viper.GetString("server.name")
 	port := viper.GetInt("server.port")
 	etcdEndpoints := viper.GetStringSlice("etcd.endpoints")
 	etcdDialTimeout := viper.GetDuration("etcd.dial_timeout") * time.Second
-	authServiceAddress := viper.GetString("auth_service.address")
 
 	client, err := clientv3.New(clientv3.Config{
 		Endpoints:   etcdEndpoints,
@@ -37,15 +38,6 @@ func main() {
 		log.Fatal(err)
 	}
 	defer client.Close()
-
-	// 连接认证中心
-	conn, err := grpc.Dial(authServiceAddress, grpc.WithInsecure())
-	if err != nil {
-		log.Fatalf("failed to connect to auth service: %v", err)
-	}
-	defer conn.Close()
-
-	authClient := auth.NewAuthServiceClient(conn)
 
 	err = etcd.RegisterService(client, serviceName, fmt.Sprintf("localhost:%d", port), 10)
 	if err != nil {
@@ -63,18 +55,23 @@ func main() {
 		log.Fatalf("failed to initialize snowflake node: %v", err)
 	}
 
+	// 初始化服务代理
+	serviceEndpoints := map[string]string{
+		"auth": viper.GetString("auth_service.address"),
+	}
+	serviceProxy := proxy.NewGrpcProxy(serviceEndpoints)
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
 	user.RegisterUserServiceServer(s, &service.UserServiceServer{
-		// Users:      make(map[string]*service.User),
-		AuthClient: authClient,
-		DB:         db,
-		Node:       node,
+		DB:    db,
+		Node:  node,
+		Proxy: serviceProxy,
 	})
-	log.Printf("server listening at %v", lis.Addr())
+	log.Infof("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

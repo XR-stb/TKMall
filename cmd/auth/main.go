@@ -1,8 +1,8 @@
 package main
 
 import (
+	"TKMall/common/log"
 	"fmt"
-	"log"
 	"net"
 	"time"
 
@@ -17,9 +17,9 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-
-
 func main() {
+	log.Init("config/log.yaml", "auth")
+
 	config.InitConfig("auth")
 
 	serviceName := viper.GetString("server.name")
@@ -50,7 +50,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	log.Printf("server listening at %v", lis.Addr())
+	log.Infof("server listening at %v", lis.Addr())
 	if err := server.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

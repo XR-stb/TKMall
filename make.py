@@ -40,7 +40,7 @@ class Make:
             build_ret = 114514
             if target in self.golang_targets:
                 build_ret = util.exec_cmd_with_color(
-                    "go build -o build/golang/ ./cmd/%s"
+                    "go build -o build/bin/ ./cmd/%s"
                     % target
                 )
 
@@ -67,13 +67,23 @@ class Make:
     def _run_(self):
         targets = self.args.targets
         if targets == "all" or targets == ["all"]:
-            # TODO: 应该将分类的bin文件都输出到build/bin下去
-            raise Exception("run all bin is unaccomplish!!!")
-
+            # 优先运行gateway
+            if "gateway" in self.golang_targets:
+                logger.Info("Starting gateway first in background...")
+                util.exec_cmd_with_color("./build/bin/gateway &")
+                # 运行其他服务（排除gateway）
+                other_services = [s for s in self.golang_targets if s != "gateway"]
+                for service in other_services:
+                    logger.Info(f"Starting {service} in background...")
+                    util.exec_cmd_with_color(f"./build/bin/{service} &")
+                return
+            # 如果不存在gateway则按原顺序运行
+            for service in self.golang_targets:
+                util.exec_cmd_with_color(f"./build/bin/{service}")
         else:
             for target in targets:
                 if target in self.golang_targets:
-                    util.exec_cmd_with_color("./build/golang/%s" % target)
+                    util.exec_cmd_with_color("./build/bin/%s" % target)
                     return
                 raise Exception("unknown targets %s", target)
     

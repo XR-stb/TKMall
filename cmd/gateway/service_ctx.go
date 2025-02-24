@@ -3,9 +3,9 @@ package main
 import (
 	"TKMall/build/proto_gen/auth"
 	user "TKMall/build/proto_gen/user"
+	"TKMall/common/log"
 	"context"
 	"fmt"
-	"log"
 	"reflect"
 
 	"google.golang.org/grpc"
@@ -79,7 +79,7 @@ func (s *ServiceContext) GetClient(name string, client interface{}) error {
 func (s *ServiceContext) Close() {
 	for name, conn := range s.connections {
 		if err := conn.Close(); err != nil {
-			log.Printf("[%s] 连接关闭失败: %v", name, err)
+			log.Infof("[%s] 连接关闭失败: %v", name, err)
 		}
 	}
 }

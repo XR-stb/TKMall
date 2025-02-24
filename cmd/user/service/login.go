@@ -4,9 +4,9 @@ import (
 	"TKMall/build/proto_gen/auth"
 	"TKMall/build/proto_gen/user"
 	"TKMall/cmd/user/model"
+	"TKMall/common/log"
 	"context"
 	"fmt"
-	"log"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -29,15 +29,17 @@ func (s *UserServiceServer) Login(ctx context.Context, req *user.LoginReq) (*use
 		return nil, fmt.Errorf("invalid password")
 	}
 
-	// generate token
-	tokenResp, err := s.AuthClient.DeliverTokenByRPC(ctx, &auth.DeliverTokenReq{UserId: int32(userInfo.ID)})
+	// 通过代理层调用 Auth 服务
+	tokenReq := &auth.DeliverTokenReq{UserId: int32(userInfo.ID)}
+	tokenResp, err := s.Proxy.Call(ctx, "auth", "DeliverTokenByRPC", tokenReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %v", err)
 	}
 
-	log.Printf("Generated token for user %d: %s", userInfo.ID, tokenResp.Token)
+	authResp := tokenResp.(*auth.DeliveryResp)
+	log.Infof("Generated token for user %d: %s", userInfo.ID, authResp.Token)
 
 	// may need to return token
-	// return &user.LoginResp{UserId: int32(userInfo.ID), Token: tokenResp.Token}, nil
+	// return &user.LoginResp{UserId: int32(userInfo.ID), Token: authResp.Token}, nil
 	return &user.LoginResp{UserId: int32(userInfo.ID)}, nil
 }

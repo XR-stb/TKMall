@@ -1,9 +1,9 @@
 package main
 
 import (
+	"TKMall/common/log"
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -21,17 +21,17 @@ func registerService(etcdClient *clientv3.Client, serviceName, serviceAddr strin
 	if err != nil {
 		return err
 	}
-	log.Printf("租约ID: %d", grantResp.ID)
+	log.Infof("租约ID: %d", grantResp.ID)
 	_, err = etcdClient.Put(context.Background(), serviceName, serviceAddr, clientv3.WithLease(grantResp.ID))
 	if err != nil {
 		return err
 	}
-	log.Printf("服务 %s 已注册到 ETCD，租约ID: %d", serviceName, grantResp.ID)
+	log.Infof("服务 %s 已注册到 ETCD，租约ID: %d", serviceName, grantResp.ID)
 	go func() {
 		for {
 			_, err := lease.KeepAliveOnce(context.Background(), grantResp.ID)
 			if err != nil {
-				log.Printf("Failed to keep alive: %v", err)
+				log.Infof("Failed to keep alive: %v", err)
 				break
 			}
 			time.Sleep(time.Duration(ttl/2) * time.Second)
@@ -42,6 +42,8 @@ func registerService(etcdClient *clientv3.Client, serviceName, serviceAddr strin
 }
 
 func main() {
+	log.Init("config/log.yaml", "gateway")
+
 	config, err := loadConfig()
 	if err != nil {
 		log.Fatalf("加载配置失败: %v", err)

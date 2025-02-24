@@ -1,7 +1,7 @@
 package config
 
 import (
-	"log"
+	"TKMall/common/log"
 
 	"github.com/spf13/viper"
 )
