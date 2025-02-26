@@ -13,7 +13,7 @@ else
     if ! pgrep -x "etcd" > /dev/null; then
         echo "正在启动 etcd..."
         # Start etcd
-        ${INSTALL_DIR}/etcd --data-dir tools/etcd/bin
+        ${INSTALL_DIR}/etcd --data-dir tools/etcd/bin &
     else
         echo "etcd 已经在运行中"
     fi
