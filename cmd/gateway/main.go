@@ -63,6 +63,7 @@ func main() {
 	defer etcdClient.Close()
 
 	// 初始化 Casbin
+	// TODO: 后续权限记录应该写入db，不再读取csv，github.com/casbin/xorm-adapter 已做支持
 	e, err := casbin.NewEnforcer("config/casbin/model.conf", "config/casbin/policy.csv")
 	if err != nil {
 		log.Fatalf("Failed to initialize Casbin: %v", err)
