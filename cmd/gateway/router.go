@@ -46,9 +46,9 @@ func router(rpc *RPCWrapper, enforcer *casbin.Enforcer) http.Handler {
 	// 添加商品服务路由
 	productGroup := e.Group("/products")
 	{
-		productGroup.GET("/:id", middleware.CacheMiddleware(5*time.Minute), rpc.Call("product", product.ProductCatalogServiceClient.GetProduct))
 		productGroup.GET("", rpc.Call("product", product.ProductCatalogServiceClient.ListProducts))
-		productGroup.GET("/search", rpc.Call("product", product.ProductCatalogServiceClient.SearchProducts))
+		productGroup.GET("/get", middleware.CacheMiddleware(5*time.Minute), rpc.Call("product", product.ProductCatalogServiceClient.GetProduct))
+		productGroup.POST("/search", rpc.Call("product", product.ProductCatalogServiceClient.SearchProducts))
 	}
 
 	return e
