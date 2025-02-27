@@ -1,0 +1,11 @@
+whitelist:
+  - path: /register
+    methods: [POST]
+  - path: /login
+    methods: [POST]
+  - path: /test_auth
+    methods: [GET]
+  - path: /public/*
+    methods: [GET,POST]
+  - path: /healthcheck
+    methods: [GET] 

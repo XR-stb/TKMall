@@ -3,15 +3,39 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"TKMall/common/log" // 使用项目的日志包
 
+	"os"
+
 	"github.com/casbin/casbin/v2"
 	"github.com/gin-gonic/gin"
+	"gopkg.in/yaml.v3"
 )
 
 var enforcer *casbin.Enforcer
+
+// 新增结构体定义
+type WhitelistRule struct {
+	Path    string   `yaml:"path"`
+	Methods []string `yaml:"methods"`
+}
+
+var whitelist []WhitelistRule
+
+// 新增路径匹配函数
+func matchPath(requestPath, pattern string) bool {
+	if pattern == "*" {
+		return true
+	}
+	if strings.HasSuffix(pattern, "/*") {
+		prefix := strings.TrimSuffix(pattern, "/*")
+		return strings.HasPrefix(requestPath, prefix)
+	}
+	return requestPath == pattern
+}
 
 // 初始化 Enforcer
 func InitEnforcer(e *casbin.Enforcer) {
@@ -33,8 +57,22 @@ func autoReload() {
 	}
 }
 
+// 修改中间件逻辑
 func AuthorizationMiddleware(e *casbin.Enforcer) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 白名单检查
+		for _, rule := range whitelist {
+			if matchPath(c.Request.URL.Path, rule.Path) {
+				for _, method := range rule.Methods {
+					if strings.EqualFold(method, c.Request.Method) {
+						log.Infof("跳过白名单接口: %s %s", c.Request.Method, rule.Path)
+						c.Next()
+						return
+					}
+				}
+			}
+		}
+
 		log.Infof("正在处理请求: %s %s", c.Request.Method, c.Request.URL.Path)
 
 		// 只跳过注册接口的权限验证
@@ -174,4 +212,22 @@ func GetBlockedUsers(e *casbin.Enforcer) []string {
 // 重新加载策略
 func ReloadPolicy(e *casbin.Enforcer) error {
 	return e.LoadPolicy()
+}
+
+func LoadWhitelistConfig() error {
+	data, err := os.ReadFile("config/security.yaml")
+	if err != nil {
+		return fmt.Errorf("读取白名单配置失败: %v", err)
+	}
+
+	config := struct {
+		Whitelist []WhitelistRule `yaml:"whitelist"`
+	}{}
+
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return fmt.Errorf("解析白名单配置失败: %v", err)
+	}
+
+	whitelist = config.Whitelist
+	return nil
 }

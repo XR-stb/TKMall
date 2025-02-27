@@ -3,6 +3,7 @@ package main
 import (
 	"TKMall/build/proto_gen/auth"
 	user "TKMall/build/proto_gen/user"
+	"TKMall/common/log"
 	"net/http"
 
 	"TKMall/cmd/gateway/middleware"
@@ -12,6 +13,11 @@ import (
 )
 
 func router(rpc *RPCWrapper, enforcer *casbin.Enforcer) http.Handler {
+	// 加载白名单配置
+	if err := middleware.LoadWhitelistConfig(); err != nil {
+		log.Fatalf("初始化白名单配置失败: %v", err)
+	}
+
 	e := gin.New()
 	e.Use(gin.Recovery())
 
