@@ -46,26 +46,6 @@ func AuthorizationMiddleware(e *casbin.Enforcer) gin.HandlerFunc {
 
 		// 对于登录接口，使用 email 作为主体进行验证
 		if c.Request.URL.Path == "/login" {
-			email := c.Query("Email") // 注意大写的 Email
-			log.Infof("登录接口验证，Email: %s", email)
-
-			if email != "" {
-				// 检查用户是否在黑名单中
-				isBlocked, err := e.HasGroupingPolicy(email, "blocked_user")
-				if err != nil {
-					log.Errorf("黑名单检查失败: %v", err)
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Error checking permissions"})
-					c.Abort()
-					return
-				}
-
-				if isBlocked {
-					log.Warnf("用户 %s 在黑名单中，登录被拒绝", email)
-					c.JSON(http.StatusForbidden, gin.H{"error": "Account is blocked"})
-					c.Abort()
-					return
-				}
-			}
 			c.Next()
 			return
 		}

@@ -11,8 +11,8 @@ p, *, /login, POST, allow
 g, 1, admin
 g, 1888139167179739136, user
 
-# 黑名单规则（禁止访问登录接口）
-p, blocked_user, /login, POST, deny
+# 黑名单用户直接禁止所有访问（根据需求调整）
+p, blocked_user, *, *, deny
 
 # 黑名单用户列表
 g, 1893928248480370688, blocked_user

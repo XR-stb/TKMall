@@ -15,9 +15,9 @@ func router(rpc *RPCWrapper, enforcer *casbin.Enforcer) http.Handler {
 	e := gin.New()
 	e.Use(gin.Recovery())
 
-	// 先注册所有中间件
-	e.Use(middleware.AuthorizationMiddleware(enforcer)) // 先注册授权中间件
-	e.Use(middleware.BlacklistMiddleware(enforcer))     // 再注册黑名单中间件
+	// 先注册黑名单中间件
+	e.Use(middleware.BlacklistMiddleware(enforcer))     // 先注册黑名单中间件
+	e.Use(middleware.AuthorizationMiddleware(enforcer)) // 再注册授权中间件
 
 	// 然后注册路由
 	e.GET("/", func(c *gin.Context) {
