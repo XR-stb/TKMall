@@ -7,5 +7,5 @@ whitelist:
     methods: [GET]
   - path: /public/*
     methods: [GET,POST]
-  - path: /healthcheck
+  - path: /products
     methods: [GET] 

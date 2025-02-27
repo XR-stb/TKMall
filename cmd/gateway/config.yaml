@@ -9,3 +9,4 @@ etcd:
 services:
   user_service: "localhost:50051"
   auth_service: "localhost:50052"
+  product_service: "localhost:50053"

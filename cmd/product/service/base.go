@@ -1,8 +1,7 @@
 package service
 
 import (
-	"TKMall/build/proto_gen/user"
-
+	"TKMall/build/proto_gen/product"
 	"TKMall/common/events"
 	"TKMall/common/proxy"
 
@@ -10,18 +9,13 @@ import (
 	"gorm.io/gorm"
 )
 
-// type User struct {
-// 	ID       int32
-// 	Email    string
-// 	Password string
-// }
-
-type UserServiceServer struct {
-	user.UnimplementedUserServiceServer
+type ProductCatalogServiceServer struct {
+	product.UnimplementedProductCatalogServiceServer
 	DB       *gorm.DB
 	Node     *snowflake.Node
 	Proxy    proxy.ServiceProxy
 	EventBus events.EventBus
 }
 
-var userIDCounter int32 = 1
+// type ProductService struct {
+// }

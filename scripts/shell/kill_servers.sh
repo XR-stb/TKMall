@@ -9,7 +9,7 @@ SCRIPTS_DIR=$(dirname "$SHELL_DIR")
 WORKSPACE_DIR=$(dirname "$SCRIPTS_DIR")
 
 # 要关闭的端口列表
-PORTS=(8080 50051 50052)
+PORTS=(8080 50051 50052 50053)
 
 for PORT in "${PORTS[@]}"; do
     PID=$(lsof -ti:$PORT)

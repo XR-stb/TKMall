@@ -1,0 +1,16 @@
+server:
+  name: "product"
+  port: 50053
+
+etcd:
+  endpoints:
+    - "localhost:2379"
+  dial_timeout: 5
+
+mysql:
+  dsn: "tkmalluser:yourpassword@tcp(localhost:3306)/tkmall?charset=utf8mb4&parseTime=True&loc=Local"
+
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 1

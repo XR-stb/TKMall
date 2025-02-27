@@ -2,6 +2,7 @@ package main
 
 import (
 	"TKMall/build/proto_gen/auth"
+	product "TKMall/build/proto_gen/product"
 	user "TKMall/build/proto_gen/user"
 	"TKMall/common/log"
 	"net/http"
@@ -40,6 +41,14 @@ func router(rpc *RPCWrapper, enforcer *casbin.Enforcer) http.Handler {
 
 	e.POST("/login", rpc.Call("user", user.UserServiceClient.Login))
 	e.POST("/register", rpc.Call("user", user.UserServiceClient.Register))
+
+	// 添加商品服务路由
+	productGroup := e.Group("/products")
+	{
+		productGroup.GET("/:id", rpc.Call("product", product.ProductCatalogServiceClient.GetProduct))
+		productGroup.GET("", rpc.Call("product", product.ProductCatalogServiceClient.ListProducts))
+		productGroup.GET("search/:content", rpc.Call("product", product.ProductCatalogServiceClient.SearchProducts))
+	}
 
 	return e
 }

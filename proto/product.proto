@@ -1,0 +1,16 @@
+message ListProductsReq {
+  int32 page = 1;
+  int32 page_size = 2;
+  string category = 3;
+  string search_query = 4;
+  float min_price = 5;
+  float max_price = 6;
+  string sort_by = 7; // price_asc, price_desc, latest
+}
+
+message ListProductsResp {
+  repeated Product products = 1;
+  int32 total = 2;
+  int32 current_page = 3;
+  int32 total_pages = 4;
+}
