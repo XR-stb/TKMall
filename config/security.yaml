@@ -8,4 +8,4 @@ whitelist:
   - path: /public/*
     methods: [GET,POST]
   - path: /products
-    methods: [GET] 
+    methods: [GET]

@@ -20,6 +20,11 @@ type Config struct {
 	Services struct {
 		UserService string `mapstructure:"user_service"`
 		AuthService string `mapstructure:"auth_service"`
+		ProductService string `mapstructure:"product_service"`
+		OrderService string `mapstructure:"order_service"`
+		PaymentService string `mapstructure:"payment_service"`
+		CheckoutService string `mapstructure:"checkout_service"`
+		CartService string `mapstructure:"cart_service"`
 	} `mapstructure:"services"`
 }
 

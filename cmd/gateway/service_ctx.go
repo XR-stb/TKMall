@@ -2,6 +2,11 @@ package main
 
 import (
 	"TKMall/build/proto_gen/auth"
+	"TKMall/build/proto_gen/cart"
+	"TKMall/build/proto_gen/checkout"
+	"TKMall/build/proto_gen/order"
+	"TKMall/build/proto_gen/payment"
+	product "TKMall/build/proto_gen/product"
 	user "TKMall/build/proto_gen/user"
 	"TKMall/common/log"
 	"context"
@@ -33,6 +38,21 @@ func NewServiceContext(cfg *Config) *ServiceContext {
 		}},
 		"auth": {cfg.Services.AuthService, func(conn grpc.ClientConnInterface) interface{} {
 			return auth.NewAuthServiceClient(conn)
+		}},
+		"product": {cfg.Services.ProductService, func(conn grpc.ClientConnInterface) interface{} {
+			return product.NewProductCatalogServiceClient(conn)
+		}},
+		"order": {cfg.Services.OrderService, func(conn grpc.ClientConnInterface) interface{} {
+			return order.NewOrderServiceClient(conn)
+		}},
+		"payment": {cfg.Services.PaymentService, func(conn grpc.ClientConnInterface) interface{} {
+			return payment.NewPaymentServiceClient(conn)
+		}},
+		"checkout": {cfg.Services.CheckoutService, func(conn grpc.ClientConnInterface) interface{} {
+			return checkout.NewCheckoutServiceClient(conn)
+		}},
+		"cart": {cfg.Services.CartService, func(conn grpc.ClientConnInterface) interface{} {
+			return cart.NewCartServiceClient(conn)
 		}},
 	}
 

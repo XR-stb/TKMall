@@ -5,6 +5,7 @@ import (
 
 	"TKMall/build/proto_gen/product"
 	"TKMall/cmd/product/model"
+	"TKMall/common/log"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -50,6 +51,8 @@ func (s *ProductCatalogServiceServer) ListProducts(ctx context.Context, req *pro
 			Price:       float32(p.Price),
 		})
 	}
+
+	log.Debugf("query products list: %v", protoProducts)
 
 	return &product.ListProductsResp{
 		Products: protoProducts,

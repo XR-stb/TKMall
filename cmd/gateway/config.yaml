@@ -10,3 +10,7 @@ services:
   user_service: "localhost:50051"
   auth_service: "localhost:50052"
   product_service: "localhost:50053"
+  order_service: "localhost:50054"
+  payment_service: "localhost:50055"
+  checkout_service: "localhost:50056"
+  cart_service: "localhost:50057"
