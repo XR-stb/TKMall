@@ -41,7 +41,7 @@ func matchPath(requestPath, pattern string) bool {
 func InitEnforcer(e *casbin.Enforcer) {
 	enforcer = e
 	// 启动定期重新加载
-	go autoReload()
+	// go autoReload()
 }
 
 // 定期重新加载策略
