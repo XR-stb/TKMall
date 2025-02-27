@@ -14,3 +14,10 @@ func handleListError(err error) error {
 	}
 	return status.Error(codes.Internal, "内部服务错误")
 }
+
+func handleGetError(err error) error {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return status.Error(codes.NotFound, "商品不存在")
+	}
+	return status.Error(codes.Internal, "内部服务错误")
+}

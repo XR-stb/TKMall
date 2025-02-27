@@ -6,6 +6,7 @@ import (
 	user "TKMall/build/proto_gen/user"
 	"TKMall/common/log"
 	"net/http"
+	"time"
 
 	"TKMall/cmd/gateway/middleware"
 
@@ -45,7 +46,7 @@ func router(rpc *RPCWrapper, enforcer *casbin.Enforcer) http.Handler {
 	// 添加商品服务路由
 	productGroup := e.Group("/products")
 	{
-		productGroup.GET("/:id", rpc.Call("product", product.ProductCatalogServiceClient.GetProduct))
+		productGroup.GET("/:id", middleware.CacheMiddleware(5*time.Minute), rpc.Call("product", product.ProductCatalogServiceClient.GetProduct))
 		productGroup.GET("", rpc.Call("product", product.ProductCatalogServiceClient.ListProducts))
 		productGroup.GET("search/:content", rpc.Call("product", product.ProductCatalogServiceClient.SearchProducts))
 	}

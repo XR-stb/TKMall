@@ -17,6 +17,7 @@ import (
 
 	"TKMall/common/log"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
@@ -56,6 +57,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// 初始化Redis连接
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     viper.GetString("redis.addr"),
+		Password: viper.GetString("redis.password"),
+		DB:       viper.GetInt("redis.db"),
+	})
+
 	// 启动gRPC服务
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
@@ -63,7 +71,10 @@ func main() {
 	}
 
 	s := grpc.NewServer()
-	product.RegisterProductCatalogServiceServer(s, &service.ProductCatalogServiceServer{DB: db})
+	product.RegisterProductCatalogServiceServer(s, &service.ProductCatalogServiceServer{
+		DB:    db,
+		Redis: redisClient,
+	})
 
 	// 优雅关闭
 	go func() {

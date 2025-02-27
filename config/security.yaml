@@ -7,5 +7,6 @@ whitelist:
     methods: [GET]
   - path: /public/*
     methods: [GET,POST]
-  - path: /products
-    methods: [GET]
+  - path: /products/*
+    methods: [GET,POST]
+  
