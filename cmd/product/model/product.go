@@ -9,8 +9,8 @@ import (
 
 type Product struct {
 	model.BaseModel
-	Name        string  `gorm:"type:varchar(100);not null;index"`
-	Description string  `gorm:"type:text"`
+	Name        string  `gorm:"type:varchar(100);not null;index:idx_search,priority:1"`
+	Description string  `gorm:"type:text;index:idx_search,priority:2,length:255"`
 	Price       float64 `gorm:"type:decimal(10,2);not null;index"`
 	Stock       int     `gorm:"type:int unsigned;not null;default:0"`
 	CategoryID  uint    `gorm:"index"`

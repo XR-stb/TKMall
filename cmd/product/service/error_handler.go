@@ -21,3 +21,10 @@ func handleGetError(err error) error {
 	}
 	return status.Error(codes.Internal, "内部服务错误")
 }
+
+func handleSearchError(err error) error {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return status.Error(codes.NotFound, "未找到匹配商品")
+	}
+	return status.Error(codes.Internal, "搜索服务暂时不可用")
+}

@@ -48,7 +48,7 @@ func router(rpc *RPCWrapper, enforcer *casbin.Enforcer) http.Handler {
 	{
 		productGroup.GET("/:id", middleware.CacheMiddleware(5*time.Minute), rpc.Call("product", product.ProductCatalogServiceClient.GetProduct))
 		productGroup.GET("", rpc.Call("product", product.ProductCatalogServiceClient.ListProducts))
-		productGroup.GET("search/:content", rpc.Call("product", product.ProductCatalogServiceClient.SearchProducts))
+		productGroup.GET("/search", rpc.Call("product", product.ProductCatalogServiceClient.SearchProducts))
 	}
 
 	return e
