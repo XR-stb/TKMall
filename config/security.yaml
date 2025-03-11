@@ -10,5 +10,5 @@ whitelist:
   - path: /products/*
     methods: [GET,POST]
   - path: /cart/*
-    methods: [GET,POST]
+    methods: [GET,POST,DELETE]
   
