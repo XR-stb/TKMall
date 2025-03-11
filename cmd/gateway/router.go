@@ -2,6 +2,7 @@ package main
 
 import (
 	"TKMall/build/proto_gen/auth"
+	"TKMall/build/proto_gen/cart"
 	product "TKMall/build/proto_gen/product"
 	user "TKMall/build/proto_gen/user"
 	"TKMall/common/log"
@@ -49,6 +50,14 @@ func router(rpc *RPCWrapper, enforcer *casbin.Enforcer) http.Handler {
 		productGroup.GET("", rpc.Call("product", product.ProductCatalogServiceClient.ListProducts))
 		productGroup.GET("/get", middleware.CacheMiddleware(5*time.Minute), rpc.Call("product", product.ProductCatalogServiceClient.GetProduct))
 		productGroup.POST("/search", rpc.Call("product", product.ProductCatalogServiceClient.SearchProducts))
+	}
+
+	// 添加购物车服务路由
+	cartGroup := e.Group("/cart")
+	{
+		cartGroup.POST("/add", rpc.Call("cart", cart.CartServiceClient.AddItem))
+		cartGroup.GET("/get", rpc.Call("cart", cart.CartServiceClient.GetCart))
+		cartGroup.DELETE("/empty", rpc.Call("cart", cart.CartServiceClient.EmptyCart))
 	}
 
 	return e
