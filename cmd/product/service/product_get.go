@@ -41,11 +41,18 @@ func (s *ProductCatalogServiceServer) GetProduct(ctx context.Context, req *produ
 }
 
 func convertToProtoProduct(p *model.Product) *product.Product {
-	return &product.Product{
+	protoProduct := &product.Product{
 		Id:          uint32(p.ID),
 		Name:        p.Name,
 		Description: p.Description,
 		Price:       float32(p.Price),
 		Picture:     p.Images,
 	}
+
+	// 添加分类信息
+	if p.Category.ID > 0 {
+		protoProduct.Categories = []string{p.Category.Name}
+	}
+
+	return protoProduct
 }

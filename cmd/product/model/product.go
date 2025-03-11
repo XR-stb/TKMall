@@ -9,12 +9,13 @@ import (
 
 type Product struct {
 	model.BaseModel
-	Name        string  `gorm:"type:varchar(100);not null;index:idx_search,priority:1"`
-	Description string  `gorm:"type:text;index:idx_search,priority:2,length:255"`
-	Price       float64 `gorm:"type:decimal(10,2);not null;index"`
-	Stock       int     `gorm:"type:int unsigned;not null;default:0"`
-	CategoryID  uint    `gorm:"index"`
-	IsPublished bool    `gorm:"default:false"`
+	Name        string          `gorm:"type:varchar(100);not null;index:idx_search,priority:1"`
+	Description string          `gorm:"type:text;index:idx_search,priority:2,length:255"`
+	Price       float64         `gorm:"type:decimal(10,2);not null;index"`
+	Stock       int             `gorm:"type:int unsigned;not null;default:0"`
+	CategoryID  uint            `gorm:"index"`
+	Category    ProductCategory `gorm:"foreignKey:CategoryID"`
+	IsPublished bool            `gorm:"default:false"`
 	PublishedAt time.Time
 	Images      string `gorm:"type:text"` // JSON数组存储图片路径
 }
