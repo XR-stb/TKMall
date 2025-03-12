@@ -1,7 +1,6 @@
 package service
 
 import (
-	"TKMall/build/proto_gen/order"
 	"TKMall/build/proto_gen/payment"
 	"TKMall/common/events"
 	"TKMall/common/proxy"
@@ -14,12 +13,11 @@ import (
 // PaymentServiceServer 支付服务实现
 type PaymentServiceServer struct {
 	payment.UnimplementedPaymentServiceServer
-	DB           *gorm.DB
-	Redis        *redis.Client
-	Node         *snowflake.Node
-	Proxy        proxy.ServiceProxy
-	EventBus     events.EventBus
-	OrderService order.OrderServiceClient // 订单服务客户端
+	DB       *gorm.DB
+	Redis    *redis.Client
+	Node     *snowflake.Node
+	Proxy    proxy.ServiceProxy
+	EventBus events.EventBus
 }
 
 // 信用卡相关常量

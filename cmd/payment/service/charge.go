@@ -111,10 +111,12 @@ func (s *PaymentServiceServer) Charge(ctx context.Context, req *payment.ChargeRe
 
 	// 调用订单服务标记订单为已支付
 	if transaction.Status == model.PaymentStatusCompleted {
-		_, err := s.OrderService.MarkOrderPaid(ctx, &order.MarkOrderPaidReq{
+		markOrderPaidReq := &order.MarkOrderPaidReq{
 			UserId:  req.UserId,
 			OrderId: req.OrderId,
-		})
+		}
+
+		_, err := s.Proxy.Call(ctx, "order", "MarkOrderPaid", markOrderPaidReq)
 		if err != nil {
 			// 仅记录日志，不影响支付结果
 			return nil, status.Errorf(codes.Internal, "标记订单已支付失败: %v", err)

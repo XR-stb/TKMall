@@ -50,7 +50,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	log.Infof("server listening at %v", lis.Addr())
+	log.Infof("认证服务启动成功，监听端口: %d", port)
 	if err := server.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

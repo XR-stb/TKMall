@@ -13,10 +13,11 @@ import (
 	"TKMall/cmd/product/service"
 	"TKMall/common/config"
 	"TKMall/common/etcd"
-	commonModel "TKMall/common/model"
-
 	"TKMall/common/log"
+	commonModel "TKMall/common/model"
+	"TKMall/common/proxy"
 
+	"github.com/bwmarrin/snowflake"
 	"github.com/go-redis/redis/v8"
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -64,6 +65,18 @@ func main() {
 		DB:       viper.GetInt("redis.db"),
 	})
 
+	// 创建雪花ID节点
+	node, err := snowflake.NewNode(2) // 为商品服务使用节点ID 2
+	if err != nil {
+		log.Fatalf("初始化雪花ID节点失败: %v", err)
+	}
+
+	// 初始化服务代理
+	serviceEndpoints := map[string]string{
+		// 当商品服务需要调用其他服务时，在这里添加
+	}
+	serviceProxy := proxy.NewGrpcProxy(serviceEndpoints, viper.GetString("redis.addr"))
+
 	// 启动gRPC服务
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
@@ -74,6 +87,8 @@ func main() {
 	product.RegisterProductCatalogServiceServer(s, &service.ProductCatalogServiceServer{
 		DB:    db,
 		Redis: redisClient,
+		Node:  node,
+		Proxy: serviceProxy,
 	})
 
 	// 优雅关闭

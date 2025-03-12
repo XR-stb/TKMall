@@ -15,6 +15,7 @@ import (
 	"TKMall/common/etcd"
 	"TKMall/common/log"
 	commonModel "TKMall/common/model"
+	"TKMall/common/proxy"
 
 	"github.com/bwmarrin/snowflake"
 	"github.com/go-redis/redis/v8"
@@ -51,6 +52,13 @@ func main() {
 		log.Fatalf("初始化雪花ID节点失败: %v", err)
 	}
 
+	// 初始化服务代理
+	serviceEndpoints := map[string]string{
+		// 当购物车服务需要调用其他服务时，在这里添加
+		"product": viper.GetString("product_service.address"),
+	}
+	serviceProxy := proxy.NewGrpcProxy(serviceEndpoints, viper.GetString("redis.addr"))
+
 	// 创建gRPC服务器
 	server := grpc.NewServer()
 
@@ -59,6 +67,7 @@ func main() {
 		DB:    db,
 		Redis: rdb,
 		Node:  node,
+		Proxy: serviceProxy,
 	}
 
 	// 注册购物车服务
@@ -100,7 +109,7 @@ func main() {
 
 	// 启动gRPC服务
 	go func() {
-		log.Infof("购物车服务启动在端口 %d", port)
+		log.Infof("购物车服务启动成功，监听端口: %d", port)
 		if err := server.Serve(lis); err != nil {
 			log.Fatalf("服务启动失败: %v", err)
 		}

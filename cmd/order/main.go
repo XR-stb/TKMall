@@ -8,7 +8,6 @@ import (
 	"syscall"
 	"time"
 
-	"TKMall/build/proto_gen/cart"
 	"TKMall/build/proto_gen/order"
 	"TKMall/cmd/order/model"
 	"TKMall/cmd/order/service"
@@ -16,6 +15,7 @@ import (
 	"TKMall/common/etcd"
 	"TKMall/common/log"
 	commonModel "TKMall/common/model"
+	"TKMall/common/proxy"
 
 	"github.com/bwmarrin/snowflake"
 	"github.com/go-redis/redis/v8"
@@ -52,26 +52,21 @@ func main() {
 		log.Fatalf("初始化雪花ID节点失败: %v", err)
 	}
 
-	// 创建gRPC客户端连接到购物车服务
-	cartConn, err := grpc.Dial(
-		viper.GetString("cart_service.address"),
-		grpc.WithInsecure(), // 生产环境应该使用TLS
-	)
-	if err != nil {
-		log.Fatalf("连接购物车服务失败: %v", err)
+	// 初始化服务代理
+	serviceEndpoints := map[string]string{
+		"cart": viper.GetString("cart_service.address"),
 	}
-	defer cartConn.Close()
-	cartClient := cart.NewCartServiceClient(cartConn)
+	serviceProxy := proxy.NewGrpcProxy(serviceEndpoints, viper.GetString("redis.addr"))
 
 	// 创建gRPC服务器
 	server := grpc.NewServer()
 
 	// 初始化订单服务
 	orderService := &service.OrderServiceServer{
-		DB:          db,
-		Redis:       rdb,
-		Node:        node,
-		CartService: cartClient,
+		DB:    db,
+		Redis: rdb,
+		Node:  node,
+		Proxy: serviceProxy,
 	}
 
 	// 注册订单服务
@@ -109,7 +104,7 @@ func main() {
 
 	// 启动gRPC服务
 	go func() {
-		log.Infof("订单服务启动在端口 %d", port)
+		log.Infof("订单服务启动成功，监听端口: %d", port)
 		if err := server.Serve(lis); err != nil {
 			log.Fatalf("服务启动失败: %v", err)
 		}

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"TKMall/build/proto_gen/cart"
 	"TKMall/build/proto_gen/order"
 	"TKMall/common/events"
 	"TKMall/common/proxy"
@@ -14,12 +13,11 @@ import (
 // OrderServiceServer 订单服务实现
 type OrderServiceServer struct {
 	order.UnimplementedOrderServiceServer
-	DB          *gorm.DB
-	Redis       *redis.Client
-	Node        *snowflake.Node
-	Proxy       proxy.ServiceProxy
-	EventBus    events.EventBus
-	CartService cart.CartServiceClient // 购物车服务客户端
+	DB       *gorm.DB
+	Redis    *redis.Client
+	Node     *snowflake.Node
+	Proxy    proxy.ServiceProxy
+	EventBus events.EventBus
 }
 
 // Address结构体

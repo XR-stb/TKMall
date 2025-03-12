@@ -4,7 +4,6 @@ import (
 	"TKMall/build/proto_gen/cart"
 	"TKMall/build/proto_gen/checkout"
 	"TKMall/build/proto_gen/order"
-	"TKMall/build/proto_gen/payment"
 	"TKMall/common/events"
 	"TKMall/common/proxy"
 
@@ -16,14 +15,11 @@ import (
 // CheckoutServiceServer 结账服务实现
 type CheckoutServiceServer struct {
 	checkout.UnimplementedCheckoutServiceServer
-	DB             *gorm.DB
-	Redis          *redis.Client
-	Node           *snowflake.Node
-	Proxy          proxy.ServiceProxy
-	EventBus       events.EventBus
-	OrderService   order.OrderServiceClient     // 订单服务客户端
-	PaymentService payment.PaymentServiceClient // 支付服务客户端
-	CartService    cart.CartServiceClient       // 购物车服务客户端
+	DB       *gorm.DB
+	Redis    *redis.Client
+	Node     *snowflake.Node
+	Proxy    proxy.ServiceProxy
+	EventBus events.EventBus
 }
 
 // 将proto Address转换为order proto中的Address

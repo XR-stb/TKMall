@@ -86,7 +86,7 @@ func main() {
 		Proxy:    serviceProxy,
 		EventBus: eventBus,
 	})
-	log.Infof("server listening at %v", lis.Addr())
+	log.Infof("用户服务启动成功，监听端口: %d", port)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

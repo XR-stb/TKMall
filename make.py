@@ -6,6 +6,7 @@ import argparse
 
 import sys
 import os
+import time
 
 import scripts.python.log
 
@@ -77,6 +78,8 @@ class Make:
             if "gateway" in self.golang_targets:
                 logger.Info("Starting gateway first in background...")
                 util.exec_cmd_with_color("./build/bin/gateway &")
+                util.exec_cmd_with_color("echo \"\n\"")
+                time.sleep(2)
                 # 运行其他服务（排除gateway）
                 other_services = [s for s in self.golang_targets if s != "gateway"]
                 for service in other_services:

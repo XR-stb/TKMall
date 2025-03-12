@@ -75,9 +75,12 @@ func (s *OrderServiceServer) PlaceOrder(ctx context.Context, req *order.PlaceOrd
 		}
 
 		// 清空购物车（可选，取决于业务需求）
-		if _, err := s.CartService.EmptyCart(ctx, &cart.EmptyCartReq{
+		emptyCartReq := &cart.EmptyCartReq{
 			UserId: req.UserId,
-		}); err != nil {
+		}
+
+		_, err := s.Proxy.Call(ctx, "cart", "EmptyCart", emptyCartReq)
+		if err != nil {
 			// 仅记录日志，不影响订单创建
 			return fmt.Errorf("清空购物车失败: %w", err)
 		}

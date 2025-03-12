@@ -26,9 +26,15 @@ func (s *CheckoutServiceServer) Checkout(ctx context.Context, req *checkout.Chec
 	}
 
 	// 1. 获取用户购物车
-	cartResp, err := s.CartService.GetCart(ctx, &cart.GetCartReq{UserId: req.UserId})
+	cartReq := &cart.GetCartReq{UserId: req.UserId}
+	cartRespInterface, err := s.Proxy.Call(ctx, "cart", "GetCart", cartReq)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "获取购物车失败: %v", err)
+	}
+
+	cartResp, ok := cartRespInterface.(*cart.GetCartResp)
+	if !ok {
+		return nil, status.Error(codes.Internal, "响应类型转换失败")
 	}
 
 	if cartResp.Cart == nil || len(cartResp.Cart.Items) == 0 {
@@ -59,9 +65,14 @@ func (s *CheckoutServiceServer) Checkout(ctx context.Context, req *checkout.Chec
 		OrderItems:   orderItems,
 	}
 
-	orderResp, err := s.OrderService.PlaceOrder(ctx, orderReq)
+	orderRespInterface, err := s.Proxy.Call(ctx, "order", "PlaceOrder", orderReq)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "创建订单失败: %v", err)
+	}
+
+	orderResp, ok := orderRespInterface.(*order.PlaceOrderResp)
+	if !ok {
+		return nil, status.Error(codes.Internal, "响应类型转换失败")
 	}
 
 	if orderResp.Order == nil || orderResp.Order.OrderId == "" {
@@ -87,10 +98,15 @@ func (s *CheckoutServiceServer) Checkout(ctx context.Context, req *checkout.Chec
 		UserId:  req.UserId,
 	}
 
-	paymentResp, err := s.PaymentService.Charge(ctx, paymentReq)
+	paymentRespInterface, err := s.Proxy.Call(ctx, "payment", "Charge", paymentReq)
 	if err != nil {
 		// 支付失败，但订单已创建
 		return nil, status.Errorf(codes.Internal, "支付处理失败: %v", err)
+	}
+
+	paymentResp, ok := paymentRespInterface.(*payment.ChargeResp)
+	if !ok {
+		return nil, status.Error(codes.Internal, "响应类型转换失败")
 	}
 
 	// 5. 返回结果
