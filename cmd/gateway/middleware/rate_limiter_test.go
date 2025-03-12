@@ -76,9 +76,17 @@ func setupTestRouter() *gin.Engine {
 
 	// 创建一个不会启动后台goroutine的中间件版本
 	rateLimiterMiddleware := func() gin.HandlerFunc {
-		// 确保已加载配置
+		// 注意：不要在这里重新创建限流器，使用全局已有的限流器
+		// 这样测试代码和中间件会使用相同的限流器实例
+
+		// 如果限流器未初始化（主要为TestLoadRateLimitConfig测试考虑），则先初始化
 		if defaultLimiter == nil {
-			resetRateLimiters()
+			defaultLimiter = NewIPRateLimiter(10, 20)
+			pathLimiters["/login"] = NewIPRateLimiter(3, 5)
+			pathLimiters["/register"] = NewIPRateLimiter(2, 3)
+			userLimiters["/login"] = NewIPRateLimiter(1, 3)
+			cleanupInterval = time.Hour
+			logger.Printf("中间件：初始化默认限流器")
 		}
 
 		// 这里不启动清理goroutine，避免测试中的日志问题
@@ -190,6 +198,16 @@ func setupTestRouter() *gin.Engine {
 
 // 测试IP限流功能
 func TestIPRateLimiting(t *testing.T) {
+	// 先重置所有限流器，确保干净的环境
+	resetRateLimiters()
+
+	// 特别设置成严格的IP限流，确保正确测试限流功能
+	defaultLimiter = NewIPRateLimiter(5, 5) // 速率5，突发容量5
+
+	// 输出一下已设置的限流器状态
+	logger.Printf("准备开始IP限流测试：默认限流器配置 - 速率=%v, 突发容量=%v",
+		defaultLimiter.r, defaultLimiter.b)
+
 	router := setupTestRouter()
 
 	t.Run("常规接口限流测试", func(t *testing.T) {
@@ -197,10 +215,14 @@ func TestIPRateLimiting(t *testing.T) {
 		for i := 0; i < 15; i++ {
 			w := httptest.NewRecorder()
 			req, _ := http.NewRequest("GET", "/product", nil)
-			req.RemoteAddr = "192.168.1.1:12345" // 模拟相同IP
-			router.ServeHTTP(w, req)
+			// 所有请求使用相同IP
+			req.RemoteAddr = "192.168.1.1:12345"
 
-			// 前5个请求应该成功 (defaultLimiter配置为5,10)
+			logger.Printf("发送请求 #%d，IP：192.168.1.1", i+1)
+			router.ServeHTTP(w, req)
+			logger.Printf("请求 #%d 响应状态: %d", i+1, w.Code)
+
+			// 前5个请求应该成功 (defaultLimiter配置为5,5)
 			if i < 5 {
 				assert.Equal(t, http.StatusOK, w.Code, "第%d个请求应该成功", i+1)
 			} else {
@@ -218,6 +240,12 @@ func TestIPRateLimiting(t *testing.T) {
 	})
 
 	t.Run("登录接口限流测试", func(t *testing.T) {
+		// 重置路径限流器以确保测试环境干净
+		pathLimiters["/login"] = NewIPRateLimiter(3, 3) // 速率3，突发容量3
+
+		logger.Printf("准备开始登录接口限流测试：路径限流器配置 - 速率=%v, 突发容量=%v",
+			pathLimiters["/login"].r, pathLimiters["/login"].b)
+
 		// 创建超过登录接口限制数量的请求
 		for i := 0; i < 10; i++ {
 			w := httptest.NewRecorder()
@@ -225,14 +253,24 @@ func TestIPRateLimiting(t *testing.T) {
 			req, _ := http.NewRequest("POST", "/login", reqBody)
 			req.Header.Set("Content-Type", "application/json")
 			req.RemoteAddr = "192.168.1.2:12345" // 模拟相同IP
-			router.ServeHTTP(w, req)
 
-			// 前3个请求应该成功 (登录接口配置为3,5)
+			logger.Printf("发送登录请求 #%d，IP：192.168.1.2", i+1)
+			router.ServeHTTP(w, req)
+			logger.Printf("登录请求 #%d 响应状态: %d", i+1, w.Code)
+
+			// 前3个请求应该成功 (登录接口配置为3,3)
 			if i < 3 {
 				assert.Equal(t, http.StatusOK, w.Code, "第%d个登录请求应该成功", i+1)
 			} else {
 				// 后续请求应该被限流
 				assert.Equal(t, http.StatusTooManyRequests, w.Code, "第%d个登录请求应该被限流", i+1)
+
+				// 验证错误消息
+				var response map[string]interface{}
+				err := json.Unmarshal(w.Body.Bytes(), &response)
+				assert.NoError(t, err, "应该返回有效的JSON")
+				assert.Contains(t, response, "error", "响应应该包含error字段")
+				assert.Equal(t, "请求过于频繁，请稍后再试", response["error"], "错误消息应匹配")
 			}
 		}
 	})
@@ -251,31 +289,28 @@ func TestUserRateLimiting(t *testing.T) {
 	router := setupTestRouter()
 
 	t.Run("相同用户名登录限流测试", func(t *testing.T) {
-		// 重置一下限流器，确保干净的测试环境
+		// 每次测试前重置用户限流器，确保干净的测试环境
 		userLimiters["/login"] = NewIPRateLimiter(1, 1)
+		logger.Printf("已重置用户限流器（速率=1，突发=1）")
 
-		// 手动测试限流器行为 - 使用单独的测试用户，不影响实际测试
+		// 先验证令牌桶的基本行为 - 使用单独的测试用户，不影响实际测试
 		limiter := userLimiters["/login"]
-		testUserLimiter := limiter.GetLimiter("test_user_for_token_test")
+		testUserLimiter := limiter.GetLimiter("test_token_bucket_behavior")
 
 		// 第一次请求应该成功
-		if !testUserLimiter.Allow() {
-			t.Fatalf("令牌桶测试失败：第一次请求应该允许通过")
-		}
+		assert.True(t, testUserLimiter.Allow(), "令牌桶测试：第一次请求应该允许通过")
 
 		// 因为burst=1，所以第二次请求应该被限流
-		if testUserLimiter.Allow() {
-			t.Fatalf("令牌桶测试失败：第二次请求应该被限流")
-		}
+		assert.False(t, testUserLimiter.Allow(), "令牌桶测试：第二次请求应该被限流")
 
-		logger.Printf("令牌桶基本测试通过：第一次请求允许，第二次被限流")
+		logger.Printf("令牌桶基本行为测试通过")
 
 		// 使用相同邮箱模拟同一用户尝试登录
 		const testEmail = "limited@example.com"
 		const testPassword = "password123"
 
-		// 不要在此处调用Allow()检查限流器状态，避免消耗令牌
-		logger.Printf("开始实际请求测试，用户： %s", testEmail)
+		// 我们不预先检查限流器状态，避免消耗令牌
+		logger.Printf("开始真实用户限流测试，用户: %s", testEmail)
 
 		for i := 0; i < 5; i++ {
 			// 准备请求
@@ -284,12 +319,10 @@ func TestUserRateLimiting(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 
 			// 使用不同IP，确保是用户维度限流生效而非IP限流
-			ipAddress := fmt.Sprintf("192.168.1.%d:12345", 3+i)
+			ipAddress := fmt.Sprintf("192.168.1.%d:12345", 10+i)
 			req.RemoteAddr = ipAddress
 
-			logger.Printf("========= 测试请求 #%d: IP=%s, Email=%s =========", i+1, ipAddress, testEmail)
-
-			// 不要在发送请求前检查限流器状态
+			logger.Printf("========= 用户限流测试请求 #%d: IP=%s, Email=%s =========", i+1, ipAddress, testEmail)
 
 			// 发送请求
 			w := httptest.NewRecorder()
@@ -304,6 +337,13 @@ func TestUserRateLimiting(t *testing.T) {
 			} else {
 				// 后续请求应该被限流
 				assert.Equal(t, http.StatusTooManyRequests, w.Code, "第%d个相同用户登录请求应该被限流", i+1)
+
+				// 验证错误消息
+				var response map[string]interface{}
+				err := json.Unmarshal(w.Body.Bytes(), &response)
+				assert.NoError(t, err, "应该返回有效的JSON")
+				assert.Contains(t, response, "error", "响应应该包含error字段")
+				assert.Equal(t, "登录尝试次数过多，请稍后再试", response["error"], "错误消息应匹配")
 			}
 
 			logger.Printf("请求 #%d 测试完成", i+1)
@@ -347,27 +387,36 @@ func TestLoadRateLimitConfig(t *testing.T) {
 		origPathLimiters := pathLimiters
 		origUserLimiters := userLimiters
 
+		logger.Printf("测试前暂存限流器状态")
+
 		// 临时清空，模拟未加载状态
 		defaultLimiter = nil
 		pathLimiters = make(map[string]*IPRateLimiter)
 		userLimiters = make(map[string]*IPRateLimiter)
+
+		logger.Printf("临时清空限流器，模拟未加载状态")
 
 		// 创建一个临时的不存在的配置路径
 		err := LoadRateLimitConfig()
 
 		// 应该会失败，但不会导致程序崩溃
 		assert.Error(t, err, "不存在的配置文件应该返回错误")
+		logger.Printf("配置加载失败并返回错误: %v", err)
 
-		// 中间件仍应该可以使用默认值
+		// setupTestRouter会检测到defaultLimiter为nil并进行初始化
+		logger.Printf("创建测试路由")
 		router := setupTestRouter()
+		logger.Printf("发送测试请求")
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/product", nil)
 		router.ServeHTTP(w, req)
 
 		// 请求应该成功，说明使用了默认配置
 		assert.Equal(t, http.StatusOK, w.Code)
+		logger.Printf("请求成功，使用了默认配置")
 
 		// 恢复原始值
+		logger.Printf("恢复原始限流器状态")
 		defaultLimiter = origDefaultLimiter
 		pathLimiters = origPathLimiters
 		userLimiters = origUserLimiters

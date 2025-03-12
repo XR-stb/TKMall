@@ -52,10 +52,29 @@ for service in "${services[@]}"; do
     run_test "$service"
 done
 
-# 计算覆盖率
+# 计算覆盖率，排除生成的代码
+echo -e "${YELLOW}计算测试覆盖率(排除生成代码)...${NC}"
+
+# 定义要排除的生成代码目录模式
+# 可以根据需要添加更多的排除模式，用|分隔
+EXCLUDE_PATTERNS="build/proto_gen|vendor|.git"
+
+# 获取所有包，排除生成代码目录
+echo -e "${YELLOW}排除目录: ${EXCLUDE_PATTERNS}${NC}"
+all_packages=$(go list ./... | grep -v -E "$EXCLUDE_PATTERNS")
+
 echo -e "${YELLOW}计算测试覆盖率...${NC}"
-go test ./... -coverprofile=coverage.out
+# 使用-coverpkg参数指定要包含在测试覆盖率计算中的包
+go test ./... -coverprofile=coverage.out -coverpkg=$(echo $all_packages | tr ' ' ',')
+
+# 显示函数覆盖率
+echo -e "${YELLOW}函数覆盖率统计...${NC}"
 go tool cover -func=coverage.out
+
+# 可选：生成HTML覆盖率报告
+# echo -e "${YELLOW}生成HTML覆盖率报告...${NC}"
+# go tool cover -html=coverage.out -o coverage.html
+# echo -e "${GREEN}覆盖率报告已生成: coverage.html${NC}"
 
 # 打印测试摘要
 echo -e "${YELLOW}=============================${NC}"
