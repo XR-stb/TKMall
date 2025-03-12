@@ -3,7 +3,9 @@ package main
 import (
 	"TKMall/build/proto_gen/auth"
 	"TKMall/build/proto_gen/cart"
+	"TKMall/build/proto_gen/checkout"
 	"TKMall/build/proto_gen/order"
+	"TKMall/build/proto_gen/payment"
 	product "TKMall/build/proto_gen/product"
 	user "TKMall/build/proto_gen/user"
 	"TKMall/common/log"
@@ -67,6 +69,18 @@ func router(rpc *RPCWrapper, enforcer *casbin.Enforcer) http.Handler {
 		orderGroup.POST("/place", rpc.Call("order", order.OrderServiceClient.PlaceOrder))
 		orderGroup.GET("/list", rpc.Call("order", order.OrderServiceClient.ListOrder))
 		orderGroup.POST("/mark_paid", rpc.Call("order", order.OrderServiceClient.MarkOrderPaid))
+	}
+
+	// 添加支付服务路由
+	paymentGroup := e.Group("/payment")
+	{
+		paymentGroup.POST("/charge", rpc.Call("payment", payment.PaymentServiceClient.Charge))
+	}
+
+	// 添加结账服务路由
+	checkoutGroup := e.Group("/checkout")
+	{
+		checkoutGroup.POST("", rpc.Call("checkout", checkout.CheckoutServiceClient.Checkout))
 	}
 
 	return e

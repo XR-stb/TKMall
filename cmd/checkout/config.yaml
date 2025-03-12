@@ -1,0 +1,24 @@
+server:
+  name: "checkout"
+  port: 50056
+
+etcd:
+  endpoints:
+    - "localhost:2379"
+  dial_timeout: 5
+
+mysql:
+  dsn: "tkmalluser:yourpassword@tcp(localhost:3306)/tkmall?charset=utf8mb4&parseTime=True&loc=Local"
+
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 5  # 使用不同的数据库编号，避免与其他服务冲突
+
+# 依赖的其他服务
+order_service:
+  address: "localhost:50054"
+payment_service:
+  address: "localhost:50055"
+cart_service:
+  address: "localhost:50057" 

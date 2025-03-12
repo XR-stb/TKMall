@@ -13,4 +13,8 @@ whitelist:
     methods: [GET,POST,DELETE]
   - path: /order/*
     methods: [GET,POST]
+  - path: /payment/*
+    methods: [POST]
+  - path: /checkout/*
+    methods: [POST]
   
