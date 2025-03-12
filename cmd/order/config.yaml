@@ -1,0 +1,20 @@
+server:
+  name: "order"
+  port: 50054
+
+etcd:
+  endpoints:
+    - "localhost:2379"
+  dial_timeout: 5
+
+mysql:
+  dsn: "tkmalluser:yourpassword@tcp(localhost:3306)/tkmall?charset=utf8mb4&parseTime=True&loc=Local"
+
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 3  # 使用不同的数据库编号，避免与其他服务冲突
+
+# 依赖的其他服务
+cart_service:
+  address: "localhost:50057" 

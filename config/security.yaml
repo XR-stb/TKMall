@@ -7,8 +7,10 @@ whitelist:
     methods: [GET]
   - path: /public/*
     methods: [GET,POST]
-  - path: /products/*
+  - path: /product/*
     methods: [GET,POST]
   - path: /cart/*
     methods: [GET,POST,DELETE]
+  - path: /order/*
+    methods: [GET,POST]
   

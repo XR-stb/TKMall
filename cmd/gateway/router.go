@@ -3,6 +3,7 @@ package main
 import (
 	"TKMall/build/proto_gen/auth"
 	"TKMall/build/proto_gen/cart"
+	"TKMall/build/proto_gen/order"
 	product "TKMall/build/proto_gen/product"
 	user "TKMall/build/proto_gen/user"
 	"TKMall/common/log"
@@ -45,7 +46,7 @@ func router(rpc *RPCWrapper, enforcer *casbin.Enforcer) http.Handler {
 	e.POST("/register", rpc.Call("user", user.UserServiceClient.Register))
 
 	// 添加商品服务路由
-	productGroup := e.Group("/products")
+	productGroup := e.Group("/product")
 	{
 		productGroup.GET("", rpc.Call("product", product.ProductCatalogServiceClient.ListProducts))
 		productGroup.GET("/get", middleware.CacheMiddleware(5*time.Minute), rpc.Call("product", product.ProductCatalogServiceClient.GetProduct))
@@ -58,6 +59,14 @@ func router(rpc *RPCWrapper, enforcer *casbin.Enforcer) http.Handler {
 		cartGroup.POST("/add", rpc.Call("cart", cart.CartServiceClient.AddItem))
 		cartGroup.GET("/get", rpc.Call("cart", cart.CartServiceClient.GetCart))
 		cartGroup.DELETE("/empty", rpc.Call("cart", cart.CartServiceClient.EmptyCart))
+	}
+
+	// 添加订单服务路由
+	orderGroup := e.Group("/order")
+	{
+		orderGroup.POST("/place", rpc.Call("order", order.OrderServiceClient.PlaceOrder))
+		orderGroup.GET("/list", rpc.Call("order", order.OrderServiceClient.ListOrder))
+		orderGroup.POST("/mark_paid", rpc.Call("order", order.OrderServiceClient.MarkOrderPaid))
 	}
 
 	return e
