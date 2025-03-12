@@ -10,7 +10,7 @@ import (
 // Cart 购物车模型
 type Cart struct {
 	model.BaseModel
-	UserID    uint      `gorm:"index;not null"` // 用户ID
+	UserID    int64     `gorm:"index;not null"` // 用户ID
 	UpdatedAt time.Time // 最后更新时间
 }
 

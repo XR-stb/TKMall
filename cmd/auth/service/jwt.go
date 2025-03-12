@@ -9,9 +9,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-
-
-func generateJWT(userId int32) (string, error) {
+func generateJWT(userId int64) (string, error) {
 	claims := &jwt.StandardClaims{
 		Subject:   fmt.Sprintf("%d", userId),
 		ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),

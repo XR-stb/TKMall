@@ -13,7 +13,7 @@ service AuthService {
 message Empty {}
 message TestGateWayMsgResp { string msg = 1; }
 
-message DeliverTokenReq { int32 user_id = 1; }
+message DeliverTokenReq { int64 user_id = 1; }
 message DeliveryResp { string token = 1; }
 
 message VerifyTokenReq { string token = 1; }

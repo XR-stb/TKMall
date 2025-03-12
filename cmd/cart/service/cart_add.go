@@ -28,7 +28,7 @@ func (s *CartServiceServer) AddItem(ctx context.Context, req *cart.AddItemReq) (
 	// 查询或创建用户的购物车
 	var userCart model.Cart
 	if err := s.DB.Where("user_id = ?", req.UserId).FirstOrCreate(&userCart, model.Cart{
-		UserID: uint(req.UserId),
+		UserID: req.UserId,
 	}).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "获取购物车失败: %v", err)
 	}

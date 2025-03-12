@@ -47,7 +47,7 @@ func (s *UserServiceServer) Login(ctx context.Context, req *user.LoginReq) (*use
 	}
 
 	// 通过代理层调用 Auth 服务
-	tokenReq := &auth.DeliverTokenReq{UserId: int32(userInfo.ID)}
+	tokenReq := &auth.DeliverTokenReq{UserId: int64(userInfo.ID)}
 	tokenResp, err := s.Proxy.Call(ctx, "auth", "DeliverTokenByRPC", tokenReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %v", err)
