@@ -107,6 +107,10 @@ class Make:
     def _genproto_(self):
         util.exec_cmd_with_color("bash ./scripts/shell/gen_proto.sh")
 
+    def _unitest_(self):
+        """运行单元测试"""
+        util.exec_cmd_with_color("bash ./scripts/shell/run_tests.sh")
+
     def _kill_(self):
         util.exec_cmd_with_color("bash ./scripts/shell/kill_servers.sh")
 
@@ -158,6 +162,8 @@ def parse_args():
     proto_parser = subparsers.add_parser("genproto", help="gen proto")
 
     kill_parser = subparsers.add_parser("kill", help="kill all running servers")
+    
+    unittest_parser = subparsers.add_parser("unitest", help="run unit tests for all services")
 
     # https://kislyuk.github.io/argcomplete/
     # TODO: 命令行自动补全命令, 这个autocomplete包不好下，回头弄
