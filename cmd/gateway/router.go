@@ -24,9 +24,16 @@ func router(rpc *RPCWrapper, enforcer *casbin.Enforcer) http.Handler {
 		log.Fatalf("初始化白名单配置失败: %v", err)
 	}
 
+	// 加载速率限制配置
+	if err := middleware.LoadRateLimitConfig(); err != nil {
+		log.Errorf("初始化速率限制配置失败: %v，将使用默认配置", err)
+	}
+
 	e := gin.New()
 	e.Use(gin.Recovery())
 
+	// 注册限流中间件，应当在所有其他中间件之前
+	e.Use(middleware.RateLimiterMiddleware())
 	// 先注册黑名单中间件
 	e.Use(middleware.BlacklistMiddleware(enforcer))     // 先注册黑名单中间件
 	e.Use(middleware.AuthorizationMiddleware(enforcer)) // 再注册授权中间件

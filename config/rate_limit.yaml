@@ -1,0 +1,31 @@
+# 速率限制配置
+# rate: 每秒请求数量限制
+# burst: 突发请求数量限制
+
+# 默认限制
+default:
+  rate: 10
+  burst: 20
+
+# 特定路径限制
+paths:
+  - path: "/login"
+    rate: 3
+    burst: 5
+    user_rate: 1   # 同一用户的请求限制(每秒)
+    user_burst: 5  # 同一用户的突发请求限制
+
+  - path: "/register"
+    rate: 2
+    burst: 3
+
+  - path: "/payment"
+    rate: 5
+    burst: 10
+
+  - path: "/checkout"
+    rate: 5
+    burst: 10
+
+# 清理间隔 (小时)
+cleanup_interval: 1 
