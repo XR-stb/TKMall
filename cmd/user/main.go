@@ -4,6 +4,8 @@ import (
 	"TKMall/common/log"
 	"fmt"
 	"net"
+	"os"
+	"strings"
 	"time"
 
 	user "TKMall/build/proto_gen/user"
@@ -42,7 +44,14 @@ func main() {
 	}
 	defer client.Close()
 
-	err = etcd.RegisterService(client, serviceName, fmt.Sprintf("localhost:%d", port), 10)
+	// 获取服务地址，优先使用环境变量中的POD_IP
+	serviceHost := "localhost"
+	if podIP := os.Getenv("POD_IP"); podIP != "" {
+		serviceHost = podIP
+	}
+
+	// 在Kubernetes环境中注册服务
+	err = etcd.RegisterService(client, serviceName, fmt.Sprintf("%s:%d", serviceHost, port), 10)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,13 +68,59 @@ func main() {
 	}
 
 	// 初始化服务代理
-	serviceEndpoints := map[string]string{
-		"auth": viper.GetString("auth_service.address"),
+	// 从环境变量获取auth服务地址，优先尝试多种可能的环境变量格式
+	authServiceAddr := viper.GetString("auth_service.address")
+	// 直接从环境变量获取
+	if addr := os.Getenv("AUTH_SERVICE_ADDR"); addr != "" {
+		log.Infof("使用环境变量地址 AUTH_SERVICE_ADDR: %s", addr)
+		authServiceAddr = addr
+	} else if host := os.Getenv("AUTH_SERVICE_SERVICE_HOST"); host != "" {
+		// 从Kubernetes服务发现环境变量获取
+		port := os.Getenv("AUTH_SERVICE_SERVICE_PORT")
+		if port != "" {
+			addr := fmt.Sprintf("%s:%s", host, port)
+			log.Infof("使用Kubernetes服务发现环境变量地址: %s", addr)
+			authServiceAddr = addr
+		}
+	} else {
+		log.Infof("使用配置文件中的auth服务地址: %s", authServiceAddr)
 	}
-	serviceProxy := proxy.NewGrpcProxy(serviceEndpoints, "localhost:6379")
+
+	log.Infof("最终使用的auth服务地址: %s", authServiceAddr)
+
+	serviceEndpoints := map[string]string{
+		"auth": authServiceAddr,
+	}
+
+	// 获取Redis地址，优先使用环境变量
+	redisAddr := "localhost:6379"
+	if addr := os.Getenv("REDIS_ADDR"); addr != "" {
+		redisAddr = addr
+	}
+
+	serviceProxy := proxy.NewGrpcProxy(serviceEndpoints, redisAddr)
 
 	// 初始化事件总线
-	eventBus, err := events.NewKafkaEventBus([]string{"localhost:9092"})
+	kafkaBrokers := []string{"localhost:9092"} // 默认值
+
+	// 从环境变量中读取Kafka地址
+	if brokers := viper.GetStringSlice("kafka.brokers"); len(brokers) > 0 {
+		kafkaBrokers = brokers
+	}
+
+	// 尝试从不同名称的环境变量中读取
+	if os.Getenv("KAFKA_BROKERS") != "" {
+		kafkaBrokers = strings.Split(os.Getenv("KAFKA_BROKERS"), ",")
+	} else if os.Getenv("KAFKA_ADDR") != "" {
+		kafkaBrokers = strings.Split(os.Getenv("KAFKA_ADDR"), ",")
+	} else if os.Getenv("KAFKA_BOOTSTRAP_SERVERS") != "" {
+		kafkaBrokers = strings.Split(os.Getenv("KAFKA_BOOTSTRAP_SERVERS"), ",")
+	} else if os.Getenv("KAFKA_BROKER_ADDRS") != "" {
+		kafkaBrokers = strings.Split(os.Getenv("KAFKA_BROKER_ADDRS"), ",")
+	}
+
+	log.Infof("使用Kafka地址: %v", kafkaBrokers)
+	eventBus, err := events.NewKafkaEventBus(kafkaBrokers)
 	if err != nil {
 		log.Fatalf("Failed to initialize event bus: %v", err)
 	}

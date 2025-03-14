@@ -11,6 +11,7 @@ import (
 	"TKMall/common/log"
 	"context"
 	"fmt"
+	"os"
 	"reflect"
 
 	"google.golang.org/grpc"
@@ -19,6 +20,16 @@ import (
 type ServiceContext struct {
 	clients     map[string]interface{} // 使用map存储所有客户端
 	connections map[string]*grpc.ClientConn
+}
+
+// 从环境变量获取服务地址，如果存在则使用环境变量，否则使用配置
+func getServiceAddr(envName, defaultAddr string) string {
+	if addr := os.Getenv(envName); addr != "" {
+		log.Infof("使用环境变量地址 %s: %s", envName, addr)
+		return addr
+	}
+	log.Infof("使用默认配置地址: %s", defaultAddr)
+	return defaultAddr
 }
 
 // 初始化服务连接
@@ -33,25 +44,25 @@ func NewServiceContext(cfg *Config) *ServiceContext {
 		address  string
 		clientFn func(conn grpc.ClientConnInterface) interface{}
 	}{
-		"user": {cfg.Services.UserService, func(conn grpc.ClientConnInterface) interface{} {
+		"user": {getServiceAddr("USER_SERVICE_ADDR", cfg.Services.UserService), func(conn grpc.ClientConnInterface) interface{} {
 			return user.NewUserServiceClient(conn)
 		}},
-		"auth": {cfg.Services.AuthService, func(conn grpc.ClientConnInterface) interface{} {
+		"auth": {getServiceAddr("AUTH_SERVICE_ADDR", cfg.Services.AuthService), func(conn grpc.ClientConnInterface) interface{} {
 			return auth.NewAuthServiceClient(conn)
 		}},
-		"product": {cfg.Services.ProductService, func(conn grpc.ClientConnInterface) interface{} {
+		"product": {getServiceAddr("PRODUCT_SERVICE_ADDR", cfg.Services.ProductService), func(conn grpc.ClientConnInterface) interface{} {
 			return product.NewProductCatalogServiceClient(conn)
 		}},
-		"order": {cfg.Services.OrderService, func(conn grpc.ClientConnInterface) interface{} {
+		"order": {getServiceAddr("ORDER_SERVICE_ADDR", cfg.Services.OrderService), func(conn grpc.ClientConnInterface) interface{} {
 			return order.NewOrderServiceClient(conn)
 		}},
-		"payment": {cfg.Services.PaymentService, func(conn grpc.ClientConnInterface) interface{} {
+		"payment": {getServiceAddr("PAYMENT_SERVICE_ADDR", cfg.Services.PaymentService), func(conn grpc.ClientConnInterface) interface{} {
 			return payment.NewPaymentServiceClient(conn)
 		}},
-		"checkout": {cfg.Services.CheckoutService, func(conn grpc.ClientConnInterface) interface{} {
+		"checkout": {getServiceAddr("CHECKOUT_SERVICE_ADDR", cfg.Services.CheckoutService), func(conn grpc.ClientConnInterface) interface{} {
 			return checkout.NewCheckoutServiceClient(conn)
 		}},
-		"cart": {cfg.Services.CartService, func(conn grpc.ClientConnInterface) interface{} {
+		"cart": {getServiceAddr("CART_SERVICE_ADDR", cfg.Services.CartService), func(conn grpc.ClientConnInterface) interface{} {
 			return cart.NewCartServiceClient(conn)
 		}},
 	}

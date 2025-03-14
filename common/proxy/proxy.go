@@ -9,6 +9,11 @@ import (
 	"time"
 
 	"TKMall/build/proto_gen/auth"
+	"TKMall/build/proto_gen/cart"
+	"TKMall/build/proto_gen/checkout"
+	"TKMall/build/proto_gen/order"
+	"TKMall/build/proto_gen/payment"
+	"TKMall/build/proto_gen/product"
 	user "TKMall/build/proto_gen/user"
 
 	"github.com/afex/hystrix-go/hystrix"
@@ -174,6 +179,16 @@ func (p *GrpcProxy) getServiceClient(conn *grpc.ClientConn, service string) (int
 		return auth.NewAuthServiceClient(conn), nil
 	case "user":
 		return user.NewUserServiceClient(conn), nil
+	case "product":
+		return product.NewProductCatalogServiceClient(conn), nil
+	case "cart":
+		return cart.NewCartServiceClient(conn), nil
+	case "order":
+		return order.NewOrderServiceClient(conn), nil
+	case "payment":
+		return payment.NewPaymentServiceClient(conn), nil
+	case "checkout":
+		return checkout.NewCheckoutServiceClient(conn), nil
 	default:
 		return nil, fmt.Errorf("unknown service: %s. please in here implement or fix your code.", service)
 	}

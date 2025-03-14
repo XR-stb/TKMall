@@ -1,0 +1,38 @@
+FROM golang:1.22-alpine AS builder
+RUN apk add --no-cache tzdata
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+RUN date
+ENV TZ=Asia/Shanghai
+ENV GOTOOLCHAIN=auto
+
+WORKDIR /app
+
+# 复制go.mod和go.sum文件
+COPY go.mod go.sum ./
+# 修复go.mod中的版本格式问题
+RUN sed -i 's/go 1.23.4/go 1.23/g' go.mod && cat go.mod
+RUN go mod download
+
+# 复制源代码
+COPY . .
+
+# 构建应用
+RUN CGO_ENABLED=0 GOOS=linux go build -o payment ./cmd/payment/main.go
+
+# 第二阶段：创建最小运行镜像
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates
+
+WORKDIR /root/
+
+# 从构建阶段复制二进制文件
+COPY --from=builder /app/payment .
+# 复制配置文件
+COPY --from=builder /app/config/log.yaml /root/config/
+COPY --from=builder /app/cmd/payment/config.yaml /root/cmd/payment/
+
+EXPOSE 50056
+
+CMD ["./payment"] 

@@ -53,11 +53,28 @@ func main() {
 	}
 
 	// 初始化服务代理
+	// 从环境变量获取product服务地址，如果不存在则使用配置文件
+	productServiceAddr := viper.GetString("product_service.address")
+	if addr := os.Getenv("PRODUCT_SERVICE_ADDR"); addr != "" {
+		log.Infof("使用环境变量地址 PRODUCT_SERVICE_ADDR: %s", addr)
+		productServiceAddr = addr
+	} else {
+		log.Infof("使用配置文件中的product服务地址: %s", productServiceAddr)
+	}
+
 	serviceEndpoints := map[string]string{
 		// 当购物车服务需要调用其他服务时，在这里添加
-		"product": viper.GetString("product_service.address"),
+		"product": productServiceAddr,
 	}
-	serviceProxy := proxy.NewGrpcProxy(serviceEndpoints, viper.GetString("redis.addr"))
+
+	// 获取Redis地址，优先使用环境变量
+	redisAddr := viper.GetString("redis.addr")
+	if addr := os.Getenv("REDIS_ADDR"); addr != "" {
+		log.Infof("使用环境变量地址 REDIS_ADDR: %s", addr)
+		redisAddr = addr
+	}
+
+	serviceProxy := proxy.NewGrpcProxy(serviceEndpoints, redisAddr)
 
 	// 创建gRPC服务器
 	server := grpc.NewServer()
@@ -99,7 +116,17 @@ func main() {
 
 	// 注册服务
 	serviceKey := fmt.Sprintf("/services/%s", serviceName)
-	serviceValue := fmt.Sprintf("localhost:%d", port)
+
+	// 获取服务地址，优先使用环境变量中的POD_IP
+	serviceHost := "localhost"
+	if podIP := os.Getenv("POD_IP"); podIP != "" {
+		serviceHost = podIP
+		log.Infof("使用POD_IP作为服务地址: %s", serviceHost)
+	} else {
+		log.Infof("使用localhost作为服务地址")
+	}
+
+	serviceValue := fmt.Sprintf("%s:%d", serviceHost, port)
 
 	// 注册服务到etcd，设置TTL为10秒
 	err = etcd.RegisterService(cli, serviceKey, serviceValue, 10)

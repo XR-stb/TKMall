@@ -53,10 +53,27 @@ func main() {
 	}
 
 	// 初始化服务代理
-	serviceEndpoints := map[string]string{
-		"cart": viper.GetString("cart_service.address"),
+	// 从环境变量获取cart服务地址，如果不存在则使用配置文件
+	cartServiceAddr := viper.GetString("cart_service.address")
+	if addr := os.Getenv("CART_SERVICE_ADDR"); addr != "" {
+		log.Infof("使用环境变量地址 CART_SERVICE_ADDR: %s", addr)
+		cartServiceAddr = addr
+	} else {
+		log.Infof("使用配置文件中的cart服务地址: %s", cartServiceAddr)
 	}
-	serviceProxy := proxy.NewGrpcProxy(serviceEndpoints, viper.GetString("redis.addr"))
+
+	serviceEndpoints := map[string]string{
+		"cart": cartServiceAddr,
+	}
+
+	// 获取Redis地址，优先使用环境变量
+	redisAddr := viper.GetString("redis.addr")
+	if addr := os.Getenv("REDIS_ADDR"); addr != "" {
+		log.Infof("使用环境变量地址 REDIS_ADDR: %s", addr)
+		redisAddr = addr
+	}
+
+	serviceProxy := proxy.NewGrpcProxy(serviceEndpoints, redisAddr)
 
 	// 创建gRPC服务器
 	server := grpc.NewServer()
@@ -97,7 +114,16 @@ func main() {
 	defer cli.Close()
 
 	// 注册服务
-	err = etcd.RegisterService(cli, serviceName, fmt.Sprintf("localhost:%d", port), 10)
+	// 获取服务地址，优先使用环境变量中的POD_IP
+	serviceHost := "localhost"
+	if podIP := os.Getenv("POD_IP"); podIP != "" {
+		serviceHost = podIP
+		log.Infof("使用POD_IP作为服务地址: %s", serviceHost)
+	} else {
+		log.Infof("使用localhost作为服务地址")
+	}
+
+	err = etcd.RegisterService(cli, serviceName, fmt.Sprintf("%s:%d", serviceHost, port), 10)
 	if err != nil {
 		log.Fatalf("服务注册到etcd失败: %v", err)
 	}

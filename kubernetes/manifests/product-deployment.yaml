@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+  labels:
+    app: product-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: product-service
+  template:
+    metadata:
+      labels:
+        app: product-service
+    spec:
+      containers:
+      - name: product
+        image: tkmall/product:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 50053
+        env:
+        - name: MYSQL_DSN
+          value: "tkmalluser:yourpassword@tcp(mysql-service:3306)/shop?charset=utf8mb4&parseTime=True&loc=Local"
+        - name: REDIS_ADDR
+          value: "redis-service:6379"
+        - name: ETCD_ENDPOINTS
+          value: "etcd-service:2379"
+        - name: KAFKA_BROKERS
+          value: "kafka-service:9092"
+        - name: KAFKA_ADDR
+          value: "kafka-service:9092"
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "kafka-service:9092"
+        - name: KAFKA_BROKER_ADDRS
+          value: "kafka-service:9092"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        readinessProbe:
+          tcpSocket:
+            port: 50053
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 50053
+          initialDelaySeconds: 15
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+spec:
+  selector:
+    app: product-service
+  ports:
+  - port: 50053
+    targetPort: 50053
+  type: ClusterIP 

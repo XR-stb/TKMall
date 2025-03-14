@@ -1,6 +1,6 @@
 server:
   name: "payment"
-  port: 50055
+  port: 50056
 
 etcd:
   endpoints:
@@ -17,4 +17,4 @@ redis:
 
 # 依赖的其他服务
 order_service:
-  address: "localhost:50054" 
+  address: "localhost:50055" 

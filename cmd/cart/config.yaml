@@ -1,6 +1,6 @@
 server:
   name: "cart"
-  port: 50057
+  port: 50054
 
 etcd:
   endpoints:

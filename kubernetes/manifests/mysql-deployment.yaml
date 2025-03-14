@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+type: Opaque
+data:
+  password: eW91cnBhc3N3b3Jk  # yourpassword的base64编码
+  root-password: eW91cnBhc3N3b3Jk  # yourpassword的base64编码
+  dsn: dGttYWxsdXNlcjp5b3VycGFzc3dvcmRAdGNwKG15c3FsLXNlcnZpY2U6MzMwNikvc2hvcD9jaGFyc2V0PXV0ZjhtYjQmcGFyc2VUaW1lPVRydWUmbG9jPUxvY2Fs  # tkmalluser:yourpassword@tcp(mysql-service:3306)/shop?charset=utf8mb4&parseTime=True&loc=Local的base64编码
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - image: mysql:8.0
+        name: mysql
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "yourpassword"  # 直接使用明文密码，简化调试
+        - name: MYSQL_DATABASE
+          value: "shop"  # 修改为shop，与连接字符串一致
+        - name: MYSQL_USER
+          value: "tkmalluser"
+        - name: MYSQL_PASSWORD
+          value: "yourpassword"  # 直接使用明文密码，简化调试
+        ports:
+        - containerPort: 3306
+          name: mysql
+        # 暂时移除持久卷挂载
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  ports:
+  - port: 3306
+  selector:
+    app: mysql
+  clusterIP: None 

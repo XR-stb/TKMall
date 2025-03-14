@@ -1,6 +1,6 @@
 server:
   name: "checkout"
-  port: 50056
+  port: 50057
 
 etcd:
   endpoints:
@@ -17,8 +17,8 @@ redis:
 
 # 依赖的其他服务
 order_service:
-  address: "localhost:50054"
-payment_service:
   address: "localhost:50055"
+payment_service:
+  address: "localhost:50056"
 cart_service:
-  address: "localhost:50057" 
+  address: "localhost:50054" 

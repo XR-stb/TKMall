@@ -1,7 +1,10 @@
 package middleware
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"sync"
@@ -191,14 +194,29 @@ func RateLimiterMiddleware() gin.HandlerFunc {
 
 		// 如果是登录接口且配置了用户级别限流，进行用户限流
 		if userLimiter, exists := userLimiters[path]; exists && path == "/login" {
-			email := c.PostForm("email")
+			// 优先从URL查询参数获取email
+			email := c.Query("email")
+
+			// 如果查询参数没有，尝试从表单获取
 			if email == "" {
-				// 尝试从JSON中获取
-				var loginData struct {
-					Email string `json:"email"`
-				}
-				if c.ShouldBindJSON(&loginData) == nil && loginData.Email != "" {
-					email = loginData.Email
+				email = c.PostForm("email")
+			}
+
+			// 如果还是没有，尝试从JSON中获取，但要确保重置请求体
+			if email == "" && c.ContentType() == "application/json" {
+				// 保存请求体
+				bodyData, err := io.ReadAll(c.Request.Body)
+				if err == nil && len(bodyData) > 0 {
+					// 解析JSON
+					var loginData struct {
+						Email string `json:"email"`
+					}
+					if json.Unmarshal(bodyData, &loginData) == nil && loginData.Email != "" {
+						email = loginData.Email
+					}
+
+					// 重要: 恢复请求体以便后续处理
+					c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyData))
 				}
 			}
 

@@ -53,7 +53,16 @@ func main() {
 	}
 	defer client.Close()
 
-	err = etcd.RegisterService(client, serviceName, fmt.Sprintf("localhost:%d", port), 10)
+	// 获取服务地址，优先使用环境变量中的POD_IP
+	serviceHost := "localhost"
+	if podIP := os.Getenv("POD_IP"); podIP != "" {
+		serviceHost = podIP
+		log.Infof("使用POD_IP作为服务地址: %s", serviceHost)
+	} else {
+		log.Infof("使用localhost作为服务地址")
+	}
+
+	err = etcd.RegisterService(client, serviceName, fmt.Sprintf("%s:%d", serviceHost, port), 10)
 	if err != nil {
 		log.Fatal(err)
 	}

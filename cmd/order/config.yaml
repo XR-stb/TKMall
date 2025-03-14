@@ -1,6 +1,6 @@
 server:
   name: "order"
-  port: 50054
+  port: 50055
 
 etcd:
   endpoints:
@@ -17,4 +17,4 @@ redis:
 
 # 依赖的其他服务
 cart_service:
-  address: "localhost:50057" 
+  address: "localhost:50054" 
